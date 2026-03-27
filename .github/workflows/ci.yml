@@ -12,6 +12,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      packages: write
 
     steps:
     - name: Checkout repository
@@ -80,17 +81,30 @@ jobs:
         mise run audit:backend
         mise run audit:frontend
 
+    - name: Push images to GHCR
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        REGISTRY: ghcr.io/${{ github.repository_owner }}
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | buildah login -u "${{ github.actor }}" --password-stdin ghcr.io
+        buildah tag miage-bank-backend:latest $REGISTRY/miage-bank-backend:${{ github.sha }}
+        buildah tag miage-bank-backend:latest $REGISTRY/miage-bank-backend:latest
+        buildah push $REGISTRY/miage-bank-backend:${{ github.sha }}
+        buildah push $REGISTRY/miage-bank-backend:latest
+        buildah tag miage-bank-frontend:latest $REGISTRY/miage-bank-frontend:${{ github.sha }}
+        buildah tag miage-bank-frontend:latest $REGISTRY/miage-bank-frontend:latest
+        buildah push $REGISTRY/miage-bank-frontend:${{ github.sha }}
+        buildah push $REGISTRY/miage-bank-frontend:latest
+
     - name: Upload Trivy Results (Backend SARIF) for Security Tab
       uses: github/codeql-action/upload-sarif@v4
       continue-on-error: true
       with:
-        sarif_file: tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.sarif
+        sarif_file: tp-buildah-trivy-dive-helm/guillaume-helg/build-reports/trivy-backend-report.sarif
 
     - name: Publish artifacts
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: build-reports
-        path: |
-          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.json
-          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-frontend-report.json
-          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.sarif
+        path: tp-buildah-trivy-dive-helm/guillaume-helg/build-reports/

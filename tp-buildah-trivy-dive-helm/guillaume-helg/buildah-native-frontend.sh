@@ -1,23 +1,25 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-# Exemple d'approche 2 : Packaging d'assets via Buildah natif (Artefact généré par la CI hôte)
+# Approche 2 : Packaging d'assets via Buildah natif (Artefact généré par la CI hôte)
+# Reproduit le même résultat que Containerfile.frontend, sans Containerfile.
 
 echo "Création du conteneur d'exécution..."
 RUNNER=$(buildah from docker.io/library/node:20-alpine)
-buildah config --workingdir /app $RUNNER
+buildah config --workingdir /app "$RUNNER"
 
 echo "Copie des assets front-end pré-compilés..."
-buildah copy $RUNNER ./banque-front/package*.json /app/
-buildah copy $RUNNER ./banque-front/.next /app/.next
-buildah copy $RUNNER ./banque-front/public /app/public
-# Assumption: node_modules has been filled by "npm ci" on the CI runner
-buildah copy $RUNNER ./banque-front/node_modules /app/node_modules
+buildah copy --chown node:node "$RUNNER" ./banque-front/package*.json /app/
+buildah copy --chown node:node "$RUNNER" ./banque-front/.next /app/.next
+buildah copy --chown node:node "$RUNNER" ./banque-front/public /app/public
+# node_modules a été rempli par "npm ci" sur le runner CI
+buildah copy --chown node:node "$RUNNER" ./banque-front/node_modules /app/node_modules
 
-buildah config --port 3000 --cmd '["npm", "start"]' $RUNNER
-buildah commit $RUNNER miage-bank-frontend:native
+echo "Configuration de l'utilisateur non-root..."
+buildah config --user node --port 3000 --cmd '["npm", "start"]' "$RUNNER"
+buildah commit "$RUNNER" miage-bank-frontend:native
 
 echo "Nettoyage..."
-buildah rm $RUNNER
+buildah rm "$RUNNER"
 
 echo "Image native Buildah terminée : miage-bank-frontend:native"

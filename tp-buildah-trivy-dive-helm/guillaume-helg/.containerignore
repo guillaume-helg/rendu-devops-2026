@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# CI / build reports
+build-reports/
+trivy-*.json
+trivy-*.sarif
+
+# Documentation
+*.md
+LICENSE
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Helm chart (not needed in image context)
+miage-bank/
+argocd/
+
+# Mise config
+mise.toml
+
+# Native build scripts (not needed in Containerfile builds)
+buildah-native-*.sh

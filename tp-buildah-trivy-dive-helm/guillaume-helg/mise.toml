@@ -3,45 +3,46 @@ CI = "true"
 
 [tools]
 trivy = "0.69.3"
-dive = "latest"
-hadolint = "latest"
+dive = "0.12.0"
+hadolint = "2.12.0"
 
 [tasks."build:backend"]
 description = "Build the backend image using Containerfile"
-dir = "banque-micro-service"
 run = [
-    "buildah bud -t miage-bank-backend:latest -f ../Containerfile.backend .",
+    "buildah bud -t miage-bank-backend:latest -f Containerfile.backend .",
     "buildah push miage-bank-backend:latest docker-daemon:miage-bank-backend:latest"
 ]
 
 [tasks."build:frontend"]
 description = "Build the frontend image using Containerfile"
-dir = "banque-front"
 run = [
-    "buildah bud -t miage-bank-frontend:latest -f ../Containerfile.frontend .",
+    "buildah bud -t miage-bank-frontend:latest -f Containerfile.frontend .",
     "buildah push miage-bank-frontend:latest docker-daemon:miage-bank-frontend:latest"
 ]
 
 [tasks."scan:backend"]
-description = "Scan backend image with Trivy"
+description = "Scan backend image with Trivy — fails on CRITICAL"
 run = [
-    "trivy image --severity HIGH,CRITICAL -f json -o trivy-backend-report.json miage-bank-backend:latest",
-    "trivy image --severity HIGH,CRITICAL -f sarif -o trivy-backend-report.sarif miage-bank-backend:latest"
+    "mkdir -p build-reports",
+    "trivy image --severity HIGH,CRITICAL --exit-code 1 -f json -o build-reports/trivy-backend-report.json miage-bank-backend:latest",
+    "trivy image --severity HIGH,CRITICAL -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-backend:latest"
 ]
 
 [tasks."scan:frontend"]
-description = "Scan frontend image with Trivy"
+description = "Scan frontend image with Trivy — fails on CRITICAL"
 run = [
-    "trivy image --severity HIGH,CRITICAL -f json -o trivy-frontend-report.json miage-bank-frontend:latest"
+    "mkdir -p build-reports",
+    "trivy image --severity HIGH,CRITICAL --exit-code 1 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
+    "trivy image --severity HIGH,CRITICAL -f sarif -o build-reports/trivy-frontend-report.sarif miage-bank-frontend:latest"
 ]
 
 [tasks."audit:backend"]
 description = "Audit backend image with Dive in CI mode"
-run = "dive miage-bank-backend:latest --ci --highestWastedBytes 20MB --highestUserWastedPercent 0.1"
+run = "dive miage-bank-backend:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
 
 [tasks."audit:frontend"]
 description = "Audit frontend image with Dive in CI mode"
-run = "dive miage-bank-frontend:latest --ci --highestWastedBytes 20MB --highestUserWastedPercent 0.1"
+run = "dive miage-bank-frontend:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
 
 [tasks.ci]
 description = "Run the full CI pipeline locally"
