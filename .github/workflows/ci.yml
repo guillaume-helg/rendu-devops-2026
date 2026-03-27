@@ -1,0 +1,96 @@
+name: CI Build OCI Images
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-scan-audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Checkout Backend
+      uses: actions/checkout@v4
+      with:
+        repository: guillaume-helg/banque-micro-service
+        path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-micro-service
+
+    - name: Checkout Frontend
+      uses: actions/checkout@v4
+      with:
+        repository: guillaume-helg/banque-front
+        path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build Backend Artifact (Maven)
+      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg/banque-micro-service
+      run: mvn clean package -DskipTests
+
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front/package-lock.json
+
+    - name: Build Frontend Artifact (Next.js)
+      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front
+      run: |
+        npm ci
+        npm run build
+
+    - name: Set up mise
+      uses: jdx/mise-action@v2
+
+    - name: Run Hadolint (Backend)
+      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/guillaume-helg/Containerfile.backend
+
+    - name: Run Hadolint (Frontend)
+      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/guillaume-helg/Containerfile.frontend
+
+    - name: Build Images (Buildah via mise)
+      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      run: |
+        mise run build:backend
+        mise run build:frontend
+
+    - name: Scan with Trivy (v0.69.3 via mise)
+      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      run: |
+        mise run scan:backend
+        mise run scan:frontend
+
+    - name: Audit components with Dive (via mise)
+      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      run: |
+        mise run audit:backend
+        mise run audit:frontend
+
+    - name: Upload Trivy Results (Backend SARIF) for Security Tab
+      uses: github/codeql-action/upload-sarif@v4
+      continue-on-error: true
+      with:
+        sarif_file: tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.sarif
+
+    - name: Publish artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-reports
+        path: |
+          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.json
+          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-frontend-report.json
+          tp-buildah-trivy-dive-helm/guillaume-helg/trivy-backend-report.sarif

@@ -1,0 +1,10 @@
+# OCI Image packaging from pre-built artifact
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# We copy the executable jar from the CI runner context directly
+COPY --chown=appuser:appgroup banque-micro-service/target/*.jar app.jar
+USER appuser
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

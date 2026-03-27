@@ -1,3 +1,4 @@
+HELG Guillaume PATAPY Jeremy
 # rendus-miage-2026
 
 # TP — Buildah, Trivy, Dive & Helm/Kubernetes — MIAGE Bank

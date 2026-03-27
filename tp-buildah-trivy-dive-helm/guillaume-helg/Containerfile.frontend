@@ -1,0 +1,10 @@
+# OCI Image packaging from pre-built artifact
+FROM node:20-alpine
+WORKDIR /app
+COPY --chown=node:node banque-front/package*.json ./
+COPY --chown=node:node banque-front/.next ./.next
+COPY --chown=node:node banque-front/public ./public
+COPY --chown=node:node banque-front/node_modules ./node_modules
+USER node
+EXPOSE 3000
+CMD ["npm", "start"]

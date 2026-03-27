@@ -1,0 +1,48 @@
+[env]
+CI = "true"
+
+[tools]
+trivy = "0.69.3"
+dive = "latest"
+hadolint = "latest"
+
+[tasks."build:backend"]
+description = "Build the backend image using Containerfile"
+dir = "banque-micro-service"
+run = [
+    "buildah bud -t miage-bank-backend:latest -f ../Containerfile.backend .",
+    "buildah push miage-bank-backend:latest docker-daemon:miage-bank-backend:latest"
+]
+
+[tasks."build:frontend"]
+description = "Build the frontend image using Containerfile"
+dir = "banque-front"
+run = [
+    "buildah bud -t miage-bank-frontend:latest -f ../Containerfile.frontend .",
+    "buildah push miage-bank-frontend:latest docker-daemon:miage-bank-frontend:latest"
+]
+
+[tasks."scan:backend"]
+description = "Scan backend image with Trivy"
+run = [
+    "trivy image --severity HIGH,CRITICAL -f json -o trivy-backend-report.json miage-bank-backend:latest",
+    "trivy image --severity HIGH,CRITICAL -f sarif -o trivy-backend-report.sarif miage-bank-backend:latest"
+]
+
+[tasks."scan:frontend"]
+description = "Scan frontend image with Trivy"
+run = [
+    "trivy image --severity HIGH,CRITICAL -f json -o trivy-frontend-report.json miage-bank-frontend:latest"
+]
+
+[tasks."audit:backend"]
+description = "Audit backend image with Dive in CI mode"
+run = "dive miage-bank-backend:latest --ci --highestWastedBytes 20MB --highestUserWastedPercent 0.1"
+
+[tasks."audit:frontend"]
+description = "Audit frontend image with Dive in CI mode"
+run = "dive miage-bank-frontend:latest --ci --highestWastedBytes 20MB --highestUserWastedPercent 0.1"
+
+[tasks.ci]
+description = "Run the full CI pipeline locally"
+depends = ["build:backend", "build:frontend", "scan:backend", "scan:frontend", "audit:backend", "audit:frontend"]
