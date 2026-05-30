@@ -6,6 +6,11 @@ set -euo pipefail
 
 echo "Création du conteneur d'exécution (runner)..."
 RUNNER=$(buildah from docker.io/library/eclipse-temurin:17-jre-alpine)
+
+echo "Mise à jour et nettoyage des paquets de sécurité..."
+buildah run "$RUNNER" -- apk update
+buildah run "$RUNNER" -- apk upgrade --no-cache
+
 buildah run "$RUNNER" -- mkdir -p /app
 
 echo "Création de l'utilisateur non-root..."

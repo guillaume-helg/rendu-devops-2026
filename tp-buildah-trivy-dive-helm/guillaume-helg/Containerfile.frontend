@@ -1,5 +1,6 @@
 # OCI Image packaging from pre-built artifact
 FROM node:20-alpine
+RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 COPY --chown=node:node banque-front/package*.json ./
 COPY --chown=node:node banque-front/.next ./.next

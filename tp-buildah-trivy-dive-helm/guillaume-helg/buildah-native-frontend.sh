@@ -6,6 +6,11 @@ set -euo pipefail
 
 echo "Création du conteneur d'exécution..."
 RUNNER=$(buildah from docker.io/library/node:20-alpine)
+
+echo "Mise à jour et nettoyage des paquets de sécurité..."
+buildah run "$RUNNER" -- apk update
+buildah run "$RUNNER" -- apk upgrade --no-cache
+
 buildah config --workingdir /app "$RUNNER"
 
 echo "Copie des assets front-end pré-compilés..."
