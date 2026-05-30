@@ -1,5 +1,5 @@
 # OCI Image packaging from pre-built artifact
-FROM eclipse-temurin:17-jre-alpine
+FROM docker.io/library/eclipse-temurin:17-jre-alpine
 RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
