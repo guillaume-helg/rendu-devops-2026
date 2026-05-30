@@ -24,16 +24,16 @@ run = [
 description = "Scan backend image with Trivy — fails on CRITICAL"
 run = [
     "mkdir -p build-reports",
-    "trivy image --severity HIGH,CRITICAL --exit-code 1 -f json -o build-reports/trivy-backend-report.json miage-bank-backend:latest",
-    "trivy image --severity HIGH,CRITICAL -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-backend:latest"
+    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-backend:latest",
+    "trivy image --severity CRITICAL --exit-code 1 -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-backend:latest"
 ]
 
 [tasks."scan:frontend"]
 description = "Scan frontend image with Trivy — fails on CRITICAL"
 run = [
     "mkdir -p build-reports",
-    "trivy image --severity HIGH,CRITICAL --exit-code 1 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
-    "trivy image --severity HIGH,CRITICAL -f sarif -o build-reports/trivy-frontend-report.sarif miage-bank-frontend:latest"
+    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
+    "trivy image --severity CRITICAL --exit-code 1 -f sarif -o build-reports/trivy-frontend-report.sarif miage-bank-frontend:latest"
 ]
 
 [tasks."audit:backend"]
