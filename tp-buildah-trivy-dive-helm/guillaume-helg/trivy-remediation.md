@@ -28,6 +28,7 @@ L'image Alpine JRE est une image minimaliste. Les CVE typiquement remontées par
 | CVE liées à OpenSSL | `libssl3` / `libcrypto3` | HIGH | Vulnérabilités dans la bibliothèque TLS Alpine | Mettre à jour l'image de base (`apk upgrade` ou tag plus récent) |
 | CVE liées à `zlib` | `zlib` | HIGH | Buffer overflow dans la décompression | Idem — mise à jour de l'image de base |
 | CVE liées au JDK | `java/jre` | HIGH/CRITICAL | Failles dans la JVM (désérialisation, JNDI) | Passer au dernier patch Temurin 17.x |
+| CVE de dépendances Java | `spring-core`, `spring-web` | CRITICAL | Failles de sécurité critiques dans Spring Boot 3.0.2 | Upgradé vers Spring Boot 3.0.13 dans le `pom.xml` du backend |
 
 > **Note** : Les CVE exactes dépendent de la date de build. Consultez le fichier `build-reports/trivy-backend-report.json` pour la liste précise.
 
