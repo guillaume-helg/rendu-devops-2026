@@ -147,12 +147,12 @@ Assemblez les étapes précédentes dans un script `une chaine CI sur Github Act
 
 ## Livrables — Partie A
 
-- [ ] Analyse comparative Docker vs Buildah (rédigée, argumentée)
-- [ ] Containerfile optimisé pour MIAGE-Bank
-- [ ] Script de build `Github Actions` fonctionnel
-- [ ] Rapport Trivy (JSON) avec plan de remédiation
-- [ ] Rapport Dive avec analyse des layers et optimisations proposées
-- [ ] README documentant la démarche et comment exécuter la chaîne
+- [X] Analyse comparative Docker vs Buildah (rédigée, argumentée)
+- [X] Containerfile optimisé pour MIAGE-Bank
+- [X] Script de build `Github Actions` fonctionnel
+- [X] Rapport Trivy (JSON) avec plan de remédiation ? C'est quoi un plan de remédiation ?
+- [X] Rapport Dive avec analyse des layers et optimisations proposées
+- [X] README documentant la démarche et comment exécuter la chaîne
 
 ---
 
