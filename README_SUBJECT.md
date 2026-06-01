@@ -246,14 +246,14 @@ Versionnez votre chart dans le dépôt Git et déployez-le via une `Application`
 
 ## Livrables — Partie B
 
-- [ ] Chart Helm complet et fonctionnel dans le dépôt Git
-- [ ] `values.yaml` et `values-prod.yaml` documentés
-- [ ] Application ArgoCD déployée et synchronisée
-- [ ] Secrets gérés via Vault + ESO ou Secret Kubernetes séparé du chart
-- [ ] NetworkPolicy en place et validée
-- [ ] Ingress exposant MIAGE-Bank
-- [ ] README décrivant le déploiement de bout en bout
-- [ ] Démonstration de la dérive ArgoCD et de la réconciliation
+- [X] Chart Helm complet et fonctionnel dans le dépôt Git
+- [X] `values.yaml` et `values-prod.yaml` documentés
+- [X] Application ArgoCD déployée et synchronisée
+- [X] Secrets gérés via Vault + ESO ou Secret Kubernetes séparé du chart
+- [X] NetworkPolicy en place et validée
+- [X] Ingress exposant MIAGE-Bank
+- [X] README décrivant le déploiement de bout en bout
+- [X] Démonstration de la dérive ArgoCD et de la réconciliation
 
 ---
 

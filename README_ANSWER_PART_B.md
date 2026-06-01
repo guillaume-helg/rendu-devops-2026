@@ -167,8 +167,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/guillaume-helg/rendus-miage-2026.git'
-    path: tp-buildah-trivy-dive-helm/guillaume-helg/miage-bank
+    repoURL: 'https://github.com/guillaume-helg/rendu-devops-2026.git'
+    path: tp-buildah-trivy-dive-helm/miage-bank
     targetRevision: main
     helm:
       valueFiles:
@@ -203,79 +203,112 @@ ArgoCD compare constamment l'état désiré (défini dans Git) et l'état réel 
 
 ## 4. Guide de test de bout en bout (Local PC)
 
-Pour valider l'ensemble du déploiement de la Partie B sur votre machine locale, suivez cette démarche étape par étape (en utilisant **Minikube** ou **Kind**).
+Pour valider l'ensemble du déploiement de la Partie B sur votre machine locale, suivez cette démarche étape par étape (en utilisant **Minikube**).
 
-### Étape 4.1 — Préparation de l'environnement local
-1. Lancez votre cluster local avec l'Ingress Traefik/Nginx activé :
-   ```bash
-   minikube start --addons=ingress
-   # Si minikube utilise ingress-nginx par défaut, modifiez la valeur ingress.className dans values.yaml à "nginx" ou déployez Traefik.
-   ```
-2. Créez le Namespace de l'application :
-   ```bash
-   kubectl create namespace miage-bank
-   ```
+> **Pré-requis** : Docker installé et démarré (`sudo systemctl start docker`), Helm et kubectl installés.
 
-### Étape 4.2 — Configuration de Vault et External Secrets Operator (ESO)
-1. Installez **External Secrets Operator** via Helm :
+### Étape 4.0 — Remise à zéro (optionnel, si le cluster est déjà dans un état instable)
+```bash
+minikube delete
+docker system prune -f
+rm -rf ~/.kube/cache ~/.cache/helm
+```
+
+### Étape 4.1 — Démarrage du cluster Minikube
+```bash
+minikube start --memory=4096 --cpus=2
+```
+
+Vérifiez que le cluster est opérationnel :
+```bash
+kubectl get nodes
+# Résultat attendu : minikube   Ready   control-plane   ...
+```
+
+### Étape 4.2 — Installation des opérateurs tiers (ESO & Vault)
+
+1. Installez **External Secrets Operator** via Helm (avec les CRDs) :
    ```bash
    helm repo add external-secrets https://charts.external-secrets.io
-   helm install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+   helm repo update
+   helm install external-secrets external-secrets/external-secrets \
+     -n external-secrets --create-namespace --set installCRDs=true
    ```
+
 2. Déployez **HashiCorp Vault** en mode dev (pour les tests) :
    ```bash
    helm repo add hashicorp https://helm.releases.hashicorp.com
    helm install vault hashicorp/vault -n default --set "server.dev.enabled=true"
    ```
-3. Récupérez le token d'administration (root token) de Vault dev :
+
+3. Attendez que le pod Vault soit prêt :
    ```bash
-   # Le token par défaut en mode dev est "root" ou affiché dans les logs du pod vault-0
-   kubectl logs vault-0 -n default | grep "Root Token"
+   kubectl wait --for=condition=Ready pod/vault-0 -n default --timeout=120s
    ```
-4. Configurez un secret dans Vault :
+
+### Étape 4.3 — Provisionnement des secrets
+
+1. Écrivez le secret applicatif dans Vault :
    ```bash
-   # Entrez dans le pod Vault pour écrire le secret
-   kubectl exec -it vault-0 -n default -- vault kv put secret/miage-bank spring.datasource.password="db-ultra-secure-pass"
+   kubectl exec -it vault-0 -n default -- vault kv put secret/miage-bank \
+     spring.datasource.password="db-ultra-secure-pass"
    ```
-5. Enregistrez le token dans Kubernetes pour qu'ESO puisse s'authentifier auprès de Vault :
+
+2. Créez le namespace `miage-bank` et le secret contenant le token Vault pour ESO :
    ```bash
+   kubectl create namespace miage-bank
    kubectl create secret generic vault-token --from-literal=token="root" -n miage-bank
    ```
 
-### Étape 4.3 — Déploiement et validation du Chart Helm
+3. Annotez le namespace pour qu'il soit adopté par Helm lors de l'installation du chart (le chart contient un template `namespace.yaml`) :
+   ```bash
+   kubectl label namespace miage-bank app.kubernetes.io/managed-by=Helm
+   kubectl annotate namespace miage-bank \
+     meta.helm.sh/release-name=miage-bank \
+     meta.helm.sh/release-namespace=miage-bank
+   ```
+
+### Étape 4.4 — Déploiement et validation du Chart Helm
+
 1. Validez la syntaxe et simulez le rendu des templates :
    ```bash
-   cd tp-buildah-trivy-dive-helm/guillaume-helg/
+   cd tp-buildah-trivy-dive-helm/
    helm lint ./miage-bank
    helm template ./miage-bank
    ```
-2. Installez le chart localement :
+
+2. Installez le chart :
    ```bash
    helm install miage-bank ./miage-bank -n miage-bank
    ```
+
 3. Vérifiez que l'ExternalSecret a bien généré le secret Kubernetes :
    ```bash
    kubectl get externalsecret -n miage-bank
    # Devrait afficher le statut 'SecretSynced'
-   
-   kubectl get secret miage-bank-vault-secret -n miage-bank -o jsonpath='{.data.spring\.datasource\.password}' | base64 -d
+
+   kubectl get secret miage-bank-vault-secret -n miage-bank \
+     -o jsonpath='{.data.spring\.datasource\.password}' | base64 -d
    # Devrait afficher : db-ultra-secure-pass
    ```
 
-### Étape 4.4 — Validation des NetworkPolicies
-Pour vérifier que la politique de **default-deny** bloque bien tout le trafic sauf celui provenant de Traefik :
+### Étape 4.5 — Validation des NetworkPolicies
+
+Pour vérifier que la politique de **default-deny** bloque bien tout le trafic sauf celui provenant de l'Ingress :
 1. Tentez d'accéder au backend depuis un pod temporaire dans un autre namespace (ex: `default`) :
    ```bash
-   kubectl run test-pod-blocked --rm -i --tty --image=curlimages/curl -n default -- curl -I -m 5 http://miage-bank.miage-bank.svc.cluster.local:8080
-   # Résultat attendu : Connection timed out (bloqué par default-deny egress/ingress)
+   kubectl run test-pod-blocked --rm -i --tty --image=curlimages/curl -n default \
+     -- curl -I -m 5 http://miage-bank.miage-bank.svc.cluster.local:8080
+   # Résultat attendu : Connection timed out (bloqué par default-deny ingress)
    ```
-2. Le trafic depuis l'Ingress Traefik (ou les pods autorisés avec le label du controller) est le seul autorisé à joindre le backend.
+2. Le trafic depuis l'Ingress Controller (pods autorisés avec le label du controller) est le seul autorisé à joindre le backend.
 
-### Étape 4.5 — Validation du GitOps ArgoCD et démonstration de la dérive (Drift)
+### Étape 4.6 — Validation du GitOps ArgoCD et démonstration de la dérive (Drift)
+
 1. Installez **ArgoCD** sur votre cluster local :
    ```bash
    kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+   kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
    ```
 2. Déployez l'application ArgoCD déclarative :
    ```bash
@@ -310,29 +343,28 @@ rendus-miage-2026/
 ├── README_TODO.md                                      ← Idées d'améliorations futures (Dagger, Cosign, etc.)
 ├── README_SUBJECT.md                                   ← Sujet du TP
 └── tp-buildah-trivy-dive-helm/
-    └── guillaume-helg/
-        ├── .containerignore                             ← Fichiers exclus du contexte de build
-        ├── Containerfile.backend                        ← Containerfile backend (Approche 1)
-        ├── Containerfile.frontend                       ← Containerfile frontend (Approche 1)
-        ├── buildah-native-backend.sh                    ← Build natif Buildah backend (Approche 2)
-        ├── buildah-native-frontend.sh                   ← Build natif Buildah frontend (Approche 2)
-        ├── mise.toml                                    ← Gestion des outils et tâches locales
-        ├── argocd/
-        │   └── argocd-miage-bank.yaml                   ← Application ArgoCD déclarative
-        └── miage-bank/                                  ← Chart Helm
-            ├── Chart.yaml
-            ├── values.yaml                              ← Valeurs dev
-            ├── values-prod.yaml                         ← Surcharges production
-            └── templates/
-                ├── _helpers.tpl
-                ├── configmap.yaml
-                ├── deployment.yaml
-                ├── externalsecret.yaml
-                ├── ingress.yaml
-                ├── namespace.yaml
-                ├── networkpolicy.yaml
-                ├── pdb.yaml
-                ├── rbac.yaml
-                ├── service.yaml
-                └── serviceaccount.yaml
+    ├── .containerignore                             ← Fichiers exclus du contexte de build
+    ├── Containerfile.backend                        ← Containerfile backend (Approche 1)
+    ├── Containerfile.frontend                       ← Containerfile frontend (Approche 1)
+    ├── buildah-native-backend.sh                    ← Build natif Buildah backend (Approche 2)
+    ├── buildah-native-frontend.sh                   ← Build natif Buildah frontend (Approche 2)
+    ├── mise.toml                                    ← Gestion des outils et tâches locales
+    ├── argocd/
+    │   └── argocd-miage-bank.yaml                   ← Application ArgoCD déclarative
+    └── miage-bank/                                  ← Chart Helm
+        ├── Chart.yaml
+        ├── values.yaml                              ← Valeurs dev
+        ├── values-prod.yaml                         ← Surcharges production
+        └── templates/
+            ├── _helpers.tpl
+            ├── configmap.yaml
+            ├── deployment.yaml
+            ├── externalsecret.yaml
+            ├── ingress.yaml
+            ├── namespace.yaml
+            ├── networkpolicy.yaml
+            ├── pdb.yaml
+            ├── rbac.yaml
+            ├── service.yaml
+            └── serviceaccount.yaml
 ```

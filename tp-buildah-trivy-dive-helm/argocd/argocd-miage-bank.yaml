@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/guillaume-helg/rendus-miage-2026.git'
-    path: tp-buildah-trivy-dive-helm/guillaume-helg/miage-bank
+    repoURL: 'https://github.com/guillaume-helg/rendu-devops-2026.git'
+    path: tp-buildah-trivy-dive-helm/miage-bank
     targetRevision: main
     helm:
       valueFiles:

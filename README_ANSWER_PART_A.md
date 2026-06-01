@@ -520,13 +520,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: guillaume-helg/banque-micro-service
-        path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-micro-service
+        path: tp-buildah-trivy-dive-helm/banque-micro-service
 
     - name: Checkout Frontend
       uses: actions/checkout@v4
       with:
         repository: guillaume-helg/banque-front
-        path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front
+        path: tp-buildah-trivy-dive-helm/banque-front
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -536,7 +536,7 @@ jobs:
         cache: maven
 
     - name: Build Backend Artifact (Maven)
-      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg/banque-micro-service
+      working-directory: tp-buildah-trivy-dive-helm/banque-micro-service
       run: mvn clean package -DskipTests
 
     - name: Set up Node.js 20
@@ -544,10 +544,10 @@ jobs:
       with:
         node-version: '20'
         cache: 'npm'
-        cache-dependency-path: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front/package-lock.json
+        cache-dependency-path: tp-buildah-trivy-dive-helm/banque-front/package-lock.json
 
     - name: Build Frontend Artifact (Next.js)
-      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg/banque-front
+      working-directory: tp-buildah-trivy-dive-helm/banque-front
       run: |
         npm ci
         npm run build
@@ -556,25 +556,25 @@ jobs:
       uses: jdx/mise-action@v2
 
     - name: Run Hadolint (Backend)
-      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/guillaume-helg/Containerfile.backend
+      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/Containerfile.backend
 
     - name: Run Hadolint (Frontend)
-      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/guillaume-helg/Containerfile.frontend
+      run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/Containerfile.frontend
 
     - name: Build Images (Buildah via mise)
-      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      working-directory: tp-buildah-trivy-dive-helm
       run: |
         mise run build:backend
         mise run build:frontend
 
     - name: Scan with Trivy (v0.69.3 via mise)
-      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      working-directory: tp-buildah-trivy-dive-helm
       run: |
         mise run scan:backend
         mise run scan:frontend
 
     - name: Audit components with Dive (via mise)
-      working-directory: tp-buildah-trivy-dive-helm/guillaume-helg
+      working-directory: tp-buildah-trivy-dive-helm
       run: |
         mise run audit:backend
         mise run audit:frontend
@@ -598,14 +598,14 @@ jobs:
       uses: github/codeql-action/upload-sarif@v4
       continue-on-error: true
       with:
-        sarif_file: tp-buildah-trivy-dive-helm/guillaume-helg/build-reports/trivy-backend-report.sarif
+        sarif_file: tp-buildah-trivy-dive-helm/build-reports/trivy-backend-report.sarif
 
     - name: Publish artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
         name: build-reports
-        path: tp-buildah-trivy-dive-helm/guillaume-helg/build-reports/
+        path: tp-buildah-trivy-dive-helm/build-reports/
 
 ---
 
@@ -631,7 +631,7 @@ Puisque **Buildah** requiert un noyau Linux avec le support des *user namespaces
 3. **Compiler les artefacts Java et Node.js** (requis avant le build d'image) :
    ```bash
    # Compiler le Backend (Maven) depuis le dossier banque-micro-service
-   cd tp-buildah-trivy-dive-helm/guillaume-helg/banque-micro-service
+   cd tp-buildah-trivy-dive-helm/banque-micro-service
    mvn clean package -DskipTests
 
    # Compiler le Frontend (Next.js) depuis le dossier banque-front
@@ -641,11 +641,11 @@ Puisque **Buildah** requiert un noyau Linux avec le support des *user namespaces
    ```
 
 ### 6.2. Exécution via `mise` (Recommandé)
-Une fois dans le répertoire `tp-buildah-trivy-dive-helm/guillaume-helg/`, les versions spécifiques des outils (Trivy `v0.69.3`, Dive `v0.12.0`, Hadolint `v2.12.0`) sont automatiquement gérées et installées par `mise` à la première exécution.
+Une fois dans le répertoire `tp-buildah-trivy-dive-helm/`, les versions spécifiques des outils (Trivy `v0.69.3`, Dive `v0.12.0`, Hadolint `v2.12.0`) sont automatiquement gérées et installées par `mise` à la première exécution.
 
 - **Exécuter la chaîne de build complète (Build, Scan Trivy, Audit Dive)** :
   ```bash
-  cd tp-buildah-trivy-dive-helm/guillaume-helg/
+  cd tp-buildah-trivy-dive-helm/
   mise run ci
   ```
 
@@ -667,7 +667,7 @@ Une fois dans le répertoire `tp-buildah-trivy-dive-helm/guillaume-helg/`, les v
 ### 6.3. Exécution via les scripts Buildah natifs (`from/run/commit`)
 Pour tester le workflow interactif/scriptable de Buildah sans passer par les Containerfiles :
 ```bash
-cd tp-buildah-trivy-dive-helm/guillaume-helg/
+cd tp-buildah-trivy-dive-helm/
 chmod +x buildah-native-backend.sh buildah-native-frontend.sh
 
 # Lancer le build natif backend
