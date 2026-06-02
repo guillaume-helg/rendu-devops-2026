@@ -606,6 +606,7 @@ jobs:
       with:
         name: build-reports
         path: tp-buildah-trivy-dive-helm/build-reports/
+```
 
 ---
 
@@ -616,7 +617,7 @@ Puisque **Buildah** requiert un noyau Linux avec le support des *user namespaces
 
 1. **Installer mise** (gestionnaire de tâches et d'outils) :
    ```bash
-   curl https://mise.jdx.co/install.sh | sh
+   curl https://mise.run | sh
    # Activer mise dans votre shell (ex: bash)
    echo 'eval "$(~/.local/share/mise/bin/mise activate bash)"' >> ~/.bashrc
    source ~/.bashrc
@@ -626,6 +627,9 @@ Puisque **Buildah** requiert un noyau Linux avec le support des *user namespaces
    ```bash
    sudo apt-get update
    sudo apt-get install -y buildah
+
+   # Et java s'il n'est pas installé
+   sudo apt install openjdk-17-jdk
    ```
 
 3. **Compiler les artefacts Java et Node.js** (requis avant le build d'image) :
