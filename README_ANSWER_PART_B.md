@@ -243,7 +243,7 @@ kubectl get nodes
 
 3. Attendez que le pod Vault soit prêt :
    ```bash
-   kubectl wait --for=condition=Ready pod/vault-0 -n default --timeout=120s
+   kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=vault -n default --timeout=120s
    ```
 
 ### Étape 4.3 — Provisionnement des secrets

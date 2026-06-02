@@ -1,0 +1,53 @@
+[tools]
+helm = "3.14.0"
+kubectl = "1.29.0"
+minikube = "1.38.1"
+
+[tasks."deploy:infra"]
+description = "Start Minikube and install third-party operators (ESO + Vault)"
+run = [
+    "minikube start --memory=4096 --cpus=2",
+    "helm repo add external-secrets https://charts.external-secrets.io",
+    "helm repo add hashicorp https://helm.releases.hashicorp.com",
+    "helm repo update",
+    "helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true",
+    "helm upgrade --install vault hashicorp/vault -n default --set 'server.dev.enabled=true'",
+    "kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=vault -n default --timeout=120s"
+]
+
+[tasks."deploy:secrets"]
+description = "Provision Vault secrets and namespace"
+depends = ["deploy:infra"]
+run = [
+    "kubectl exec vault-0 -n default -- vault kv put secret/miage-bank spring.datasource.password='db-ultra-secure-pass'",
+    "kubectl create namespace miage-bank --dry-run=client -o yaml | kubectl apply -f -",
+    "kubectl create secret generic vault-token --from-literal=token='root' -n miage-bank --dry-run=client -o yaml | kubectl apply -f -",
+    "kubectl label namespace miage-bank app.kubernetes.io/managed-by=Helm --overwrite",
+    "kubectl annotate namespace miage-bank meta.helm.sh/release-name=miage-bank --overwrite",
+    "kubectl annotate namespace miage-bank meta.helm.sh/release-namespace=miage-bank --overwrite"
+]
+
+[tasks."deploy:app"]
+description = "Deploy the MIAGE-Bank Helm Chart"
+depends = ["deploy:secrets"]
+run = [
+    "helm lint ./tp-buildah-trivy-dive-helm/miage-bank",
+    "helm upgrade --install miage-bank ./tp-buildah-trivy-dive-helm/miage-bank -n miage-bank"
+]
+
+[tasks."deploy:argocd"]
+description = "Install ArgoCD and deploy the declarations"
+run = [
+    "kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -",
+    "kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml",
+    "kubectl apply -f ./tp-buildah-trivy-dive-helm/argocd/argocd-miage-bank.yaml"
+]
+
+[tasks.clean]
+description = "Remise à zéro complète (delete Minikube, prune Docker et vider les caches)"
+tools = {}
+run = [
+    "if command -v minikube >/dev/null 2>&1; then minikube delete; fi",
+    "docker system prune -f",
+    "rm -rf ~/.kube/cache ~/.cache/helm"
+]
