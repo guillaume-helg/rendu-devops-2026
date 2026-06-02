@@ -5,9 +5,23 @@ CI = "true"
 trivy = "0.69.3"
 dive = "0.12.0"
 hadolint = "2.12.0"
+java = "openjdk-17"
+maven = "3.9.6"
+node = "20"
+
+[tasks."compile:backend"]
+description = "Compile the backend Java application using Maven"
+dir = "banque-micro-service"
+run = "mvn clean package -DskipTests"
+
+[tasks."compile:frontend"]
+description = "Build the Next.js frontend application"
+dir = "banque-front"
+run = "npm install && npm run build"
 
 [tasks."build:backend"]
 description = "Build the backend image using Containerfile"
+depends = ["compile:backend"]
 run = [
     "buildah bud -t miage-bank-backend:latest -f Containerfile.backend .",
     "buildah push miage-bank-backend:latest docker-daemon:miage-bank-backend:latest"
@@ -15,6 +29,7 @@ run = [
 
 [tasks."build:frontend"]
 description = "Build the frontend image using Containerfile"
+depends = ["compile:frontend"]
 run = [
     "buildah bud -t miage-bank-frontend:latest -f Containerfile.frontend .",
     "buildah push miage-bank-frontend:latest docker-daemon:miage-bank-frontend:latest"
@@ -22,6 +37,7 @@ run = [
 
 [tasks."scan:backend"]
 description = "Scan backend image with Trivy — fails on CRITICAL"
+depends = ["build:backend"]
 run = [
     "mkdir -p build-reports",
     "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-backend:latest",
@@ -30,6 +46,7 @@ run = [
 
 [tasks."scan:frontend"]
 description = "Scan frontend image with Trivy — fails on CRITICAL"
+depends = ["build:frontend", "scan:backend"]
 run = [
     "mkdir -p build-reports",
     "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
@@ -38,12 +55,14 @@ run = [
 
 [tasks."audit:backend"]
 description = "Audit backend image with Dive in CI mode"
+depends = ["build:backend"]
 run = "dive miage-bank-backend:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
 
 [tasks."audit:frontend"]
 description = "Audit frontend image with Dive in CI mode"
+depends = ["build:frontend", "audit:backend"]
 run = "dive miage-bank-frontend:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
 
 [tasks.ci]
 description = "Run the full CI pipeline locally"
-depends = ["build:backend", "build:frontend", "scan:backend", "scan:frontend", "audit:backend", "audit:frontend"]
+depends = ["scan:backend", "scan:frontend", "audit:backend", "audit:frontend"]

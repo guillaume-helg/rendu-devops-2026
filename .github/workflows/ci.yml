@@ -30,32 +30,10 @@ jobs:
         repository: guillaume-helg/banque-front
         path: tp-buildah-trivy-dive-helm/banque-front
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-
-    - name: Build Backend Artifact (Maven)
-      working-directory: tp-buildah-trivy-dive-helm/banque-micro-service
-      run: mvn clean package -DskipTests
-
-    - name: Set up Node.js 20
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: tp-buildah-trivy-dive-helm/banque-front/package-lock.json
-
-    - name: Build Frontend Artifact (Next.js)
-      working-directory: tp-buildah-trivy-dive-helm/banque-front
-      run: |
-        npm ci
-        npm run build
-
     - name: Set up mise
       uses: jdx/mise-action@v2
+      with:
+        cache: true
 
     - name: Run Hadolint (Backend)
       run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/Containerfile.backend
@@ -63,23 +41,9 @@ jobs:
     - name: Run Hadolint (Frontend)
       run: mise exec hadolint -- hadolint tp-buildah-trivy-dive-helm/Containerfile.frontend
 
-    - name: Build Images (Buildah via mise)
+    - name: Run CI Pipeline (mise)
       working-directory: tp-buildah-trivy-dive-helm
-      run: |
-        mise run build:backend
-        mise run build:frontend
-
-    - name: Scan with Trivy (v0.69.3 via mise)
-      working-directory: tp-buildah-trivy-dive-helm
-      run: |
-        mise run scan:backend
-        mise run scan:frontend
-
-    - name: Audit components with Dive (via mise)
-      working-directory: tp-buildah-trivy-dive-helm
-      run: |
-        mise run audit:backend
-        mise run audit:frontend
+      run: mise run ci
 
     - name: Push images to GHCR
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
