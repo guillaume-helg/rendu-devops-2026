@@ -1,0 +1,25 @@
+replicaCount: 1
+
+serviceAccountName: "miage-bank-sa"
+
+image:
+  repository: ghcr.io/guillaume-helg/miage-bank-frontend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  port: 3000
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80

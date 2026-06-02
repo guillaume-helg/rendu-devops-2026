@@ -1,3 +1,4 @@
+# Ingress: Default deny all incoming traffic
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -8,15 +9,14 @@ spec:
   policyTypes:
   - Ingress
 ---
+# Ingress: Allow Traefik Ingress Controller to reach frontend and backend
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-traefik-ingress
   namespace: {{ .Release.Namespace }}
 spec:
-  podSelector:
-    matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+  podSelector: {}
   policyTypes:
   - Ingress
   ingress:
@@ -27,8 +27,56 @@ spec:
     ports:
     - protocol: TCP
       port: 8080
+    - protocol: TCP
+      port: 3000
 ---
-# Egress: default-deny all outbound traffic
+# Ingress: Allow frontend pods to contact backend pods on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
+          component: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# Ingress: Allow backend pods to reach MySQL database on port 3306
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mysql-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: mysql
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
+          component: backend
+    ports:
+    - protocol: TCP
+      port: 3306
+---
+# Egress: Default deny all outbound traffic
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -39,16 +87,14 @@ spec:
   policyTypes:
   - Egress
 ---
-# Egress: allow DNS resolution (required for any outbound)
+# Egress: Allow DNS resolution for all pods
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-dns-egress
   namespace: {{ .Release.Namespace }}
 spec:
-  podSelector:
-    matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+  podSelector: {}
   policyTypes:
   - Egress
   egress:
@@ -60,7 +106,7 @@ spec:
     - port: 53
       protocol: TCP
 ---
-# Egress: allow app pods to reach Vault for secret injection
+# Egress: Allow backend pods to reach Vault for secret injection
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -70,6 +116,7 @@ spec:
   podSelector:
     matchLabels:
       {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: backend
   policyTypes:
   - Egress
   egress:
@@ -79,4 +126,50 @@ spec:
           kubernetes.io/metadata.name: default
     ports:
     - port: 8200
+      protocol: TCP
+---
+# Egress: Allow frontend pods to reach backend pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-egress-to-backend
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: frontend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
+          component: backend
+    ports:
+    - port: 8080
+      protocol: TCP
+---
+# Egress: Allow backend pods to reach MySQL database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-egress-to-mysql
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: backend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
+          component: mysql
+    ports:
+    - port: 3306
       protocol: TCP

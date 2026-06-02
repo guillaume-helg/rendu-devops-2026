@@ -13,14 +13,21 @@ spec:
     - host: {{ .host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: /api
+            pathType: Prefix
             backend:
               service:
-                name: {{ include "miage-bank.fullname" $ }}
+                name: {{ include "miage-bank.fullname" $ }}-backend
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: 8080
+          {{- if $.Values.frontend.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "miage-bank.fullname" $ }}-frontend
+                port:
+                  number: 3000
           {{- end }}
     {{- end }}
 {{- end }}

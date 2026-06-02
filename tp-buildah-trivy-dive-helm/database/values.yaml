@@ -1,0 +1,15 @@
+image:
+  repository: mysql
+  tag: "8.0"
+  pullPolicy: IfNotPresent
+
+service:
+  port: 3306
+
+rootPassword: "root"
+database: "test"
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  size: 1Gi

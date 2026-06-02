@@ -2,26 +2,60 @@
 
 ## 1. Chart Helm pour MIAGE-Bank
 
-### Structure du chart
+### Structure des charts (Architecture modulaire)
 
 ```
-miage-bank/
-├── Chart.yaml
-├── values.yaml
-├── values-prod.yaml
-└── templates/
-    ├── _helpers.tpl
-    ├── configmap.yaml
-    ├── deployment.yaml
-    ├── externalsecret.yaml
-    ├── ingress.yaml
-    ├── namespace.yaml
-    ├── networkpolicy.yaml
-    ├── pdb.yaml
-    ├── rbac.yaml
-    ├── service.yaml
-    └── serviceaccount.yaml
+tp-buildah-trivy-dive-helm/
+├── miage-bank/                                   ← Chart principal (Backend & Infrastructure)
+│   ├── Chart.yaml                                ← Déclare les dépendances vers frontend et database
+│   ├── values.yaml
+│   ├── values-prod.yaml
+│   └── templates/
+│       ├── _helpers.tpl
+│       ├── deployment.yaml                       ← Déploiement du backend
+│       ├── service.yaml                          ← Service du backend
+│       ├── ingress.yaml                          ← Ingress partagé
+│       ├── networkpolicy.yaml                    ← Politiques de sécurité inter-services
+│       ├── externalsecret.yaml                   ← Secrets via Vault + ESO
+│       ├── namespace.yaml
+│       ├── pdb.yaml
+│       ├── rbac.yaml
+│       └── serviceaccount.yaml
+│
+├── frontend/                                     ← Chart standalone pour le Frontend Next.js
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/
+│       ├── _helpers.tpl
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       └── configmap.yaml
+│
+└── database/                                     ← Chart standalone pour MySQL
+    ├── Chart.yaml
+    ├── values.yaml
+    └── templates/
+        ├── _helpers.tpl
+        ├── statefulset.yaml                      ← StatefulSet pour MySQL (au lieu de Deployment)
+        ├── persistentvolumeclaim.yaml            ← Stockage persistant
+        └── service.yaml
 ```
+
+### Note d'architecture : Monolithe vs. Microservices dans banque-micro-service
+
+> [!NOTE]
+> Bien que le dépôt d'origine se nomme `banque-micro-service` et contienne des sous-dossiers pour différents microservices (`account-service`, `customer-service`, `gateway-service`, `discovery-service`, `config-service`, `composite-service`, `monitoring-service`), le fichier `pom.xml` racine compile l'ensemble de la logique métier sous la forme d'un **monolithe Spring Boot unique** (générant `TPAE-0.0.1-SNAPSHOT.jar` qui écoute sur le port `8080` et communique avec la base MySQL).
+>
+> Dans le cadre du sujet de ce TP, le packaging OCI et le déploiement Kubernetes ciblent ce **monolithe backend**. 
+> Si nous devions déployer la véritable architecture microservices complète définie par les sous-dossiers :
+> 1. Il faudrait créer **7 Containerfiles distincts** et compiler 7 images OCI indépendantes.
+> 2. Il faudrait packager **7 charts ou subcharts Helm indépendants** pour orchestrer chaque service (avec des configurations de probes, de ressources et de variables d'environnement adaptées à chacun).
+> 3. Il faudrait déployer et configurer des composants d'infrastructure complexes supplémentaires (comme le serveur de découverte Eureka, le serveur de configuration centralisé et l'API Gateway).
+>
+> Pour rester parfaitement fidèle au sujet du TP et assurer une simplicité opérationnelle, l'approche modulaire mise en œuvre sépare proprement :
+> - Le **backend (TPAE)** sous forme de composant principal.
+> - Le **frontend (Next.js)** sous forme de sous-chart autonome.
+> - La **base de données (MySQL)** sous forme de sous-chart autonome (StatefulSet).
 
 ### Chart.yaml
 
@@ -270,14 +304,43 @@ kubectl get nodes
 
 ### Étape 4.4 — Déploiement et validation du Chart Helm
 
-1. Validez la syntaxe et simulez le rendu des templates :
+Vous pouvez utiliser soit les commandes **Helm natives**, soit les raccourcis configurés dans **`mise.toml`** (recommandé car il installe et gère automatiquement la bonne version de Helm).
+
+#### Option A — Via `mise` (Recommandé)
+
+1. Mettre à jour les dépendances et valider les charts :
    ```bash
    cd tp-buildah-trivy-dive-helm/
-   helm lint ./miage-bank
-   helm template ./miage-bank
+   mise run helm:lint
+   ```
+2. Simuler le rendu des templates :
+   ```bash
+   mise run helm:template
+   ```
+3. Déployer l'application (Dev ou Prod) :
+   ```bash
+   # Pour l'environnement de Dev
+   mise run helm:deploy
+
+   # Pour l'environnement de Prod
+   mise run helm:deploy:prod
    ```
 
-2. Installez le chart :
+#### Option B — Via commandes Helm natives
+
+1. Mettre à jour les dépendances locales :
+   ```bash
+   cd tp-buildah-trivy-dive-helm/
+   helm dependency update ./miage-bank
+   ```
+2. Valider la syntaxe et simulez le rendu :
+   ```bash
+   helm lint ./miage-bank
+   helm lint ./frontend
+   helm lint ./database
+   helm template ./miage-bank
+   ```
+3. Installez le chart :
    ```bash
    helm install miage-bank ./miage-bank -n miage-bank
    ```
@@ -292,7 +355,58 @@ kubectl get nodes
    # Devrait afficher : db-ultra-secure-pass
    ```
 
-### Étape 4.5 — Validation des NetworkPolicies
+### Étape 4.5 — Accès local via l'Ingress (minikube tunnel & /etc/hosts)
+
+Puisque le service d'ingress utilise le nom d'hôte `miage-bank.local`, vous devez mapper ce nom d'hôte vers l'adresse IP de votre cluster Minikube (ou de son Ingress controller) pour pouvoir y accéder depuis votre navigateur ou votre console locale.
+
+#### 1. Démarrer le tunnel Minikube (Requis pour exposer l'Ingress sur l'hôte)
+Le contrôleur Ingress nécessite un service de type LoadBalancer pour être exposé en dehors du cluster minikube. Dans un terminal séparé (qui restera actif), lancez la commande suivante :
+```bash
+minikube tunnel
+```
+*Note : Cette commande peut vous demander votre mot de passe administrateur (sudo) afin de configurer les routes réseau sur votre machine hôte.*
+
+#### 2. Récupérer l'adresse IP de l'Ingress
+Une fois le tunnel démarré, vérifiez l'adresse IP externe assignée à l'Ingress :
+```bash
+kubectl get ingress -n miage-bank
+```
+Vous devriez voir une ligne similaire à celle-ci :
+```
+NAME         CLASS   HOSTS              ADDRESS     PORTS   AGE
+miage-bank   nginx   miage-bank.local   127.0.0.1   80      34m
+```
+*Note : Si vous utilisez le driver docker de Minikube (notamment sur Windows/WSL), l'adresse IP (ADDRESS) sera `127.0.0.1`.*
+
+#### 3. Ajouter l'entrée dans le fichier `hosts` de votre système
+
+##### Sur Windows (Édition manuelle) :
+1. Ouvrez le Bloc-notes (Notepad) en mode **Administrateur**.
+2. Ouvrez le fichier : `C:\Windows\System32\drivers\etc\hosts`.
+3. Ajoutez la ligne suivante tout en bas :
+   ```
+   127.0.0.1 miage-bank.local
+   ```
+4. Enregistrez le fichier.
+
+##### Sur Linux / WSL / macOS :
+Ouvrez votre terminal et exécutez la commande suivante pour ajouter l'entrée dans `/etc/hosts` :
+```bash
+echo "127.0.0.1 miage-bank.local" | sudo tee -a /etc/hosts
+```
+
+#### 4. Tester l'accès à l'application
+Une fois le fichier `hosts` édité et le tunnel actif, vous pouvez ouvrir votre navigateur et accéder à :
+- L'application Frontend : [http://miage-bank.local/](http://miage-bank.local/)
+- L'API Backend (Santé / Actuator) : [http://miage-bank.local/api/actuator/health](http://miage-bank.local/api/actuator/health)
+
+Vous pouvez également vérifier en ligne de commande :
+```bash
+curl -I http://miage-bank.local/
+```
+Le serveur doit renvoyer une réponse HTTP 200 OK de l'application Next.js.
+
+### Étape 4.6 — Validation des NetworkPolicies
 
 Pour vérifier que la politique de **default-deny** bloque bien tout le trafic sauf celui provenant de l'Ingress :
 1. Tentez d'accéder au backend depuis un pod temporaire dans un autre namespace (ex: `default`) :
@@ -303,7 +417,7 @@ Pour vérifier que la politique de **default-deny** bloque bien tout le trafic s
    ```
 2. Le trafic depuis l'Ingress Controller (pods autorisés avec le label du controller) est le seul autorisé à joindre le backend.
 
-### Étape 4.6 — Validation du GitOps ArgoCD et démonstration de la dérive (Drift)
+### Étape 4.7 — Validation du GitOps ArgoCD et démonstration de la dérive (Drift)
 
 1. Installez **ArgoCD** sur votre cluster local :
    ```bash
@@ -351,20 +465,38 @@ rendus-miage-2026/
     ├── mise.toml                                    ← Gestion des outils et tâches locales
     ├── argocd/
     │   └── argocd-miage-bank.yaml                   ← Application ArgoCD déclarative
-    └── miage-bank/                                  ← Chart Helm
+    │
+    ├── miage-bank/                                  ← Chart principal (Backend / Infra)
+    │   ├── Chart.yaml                               ← Dépendances Chart
+    │   ├── values.yaml                              ← Valeurs dev
+    │   ├── values-prod.yaml                         ← Surcharges prod
+    │   └── templates/
+    │       ├── _helpers.tpl
+    │       ├── deployment.yaml
+    │       ├── externalsecret.yaml
+    │       ├── ingress.yaml
+    │       ├── namespace.yaml
+    │       ├── networkpolicy.yaml
+    │       ├── pdb.yaml
+    │       ├── rbac.yaml
+    │       ├── service.yaml
+    │       └── serviceaccount.yaml
+    │
+    ├── frontend/                                    ← Chart Frontend Next.js standalone
+    │   ├── Chart.yaml
+    │   ├── values.yaml
+    │   └── templates/
+    │       ├── _helpers.tpl
+    │       ├── configmap.yaml
+    │       ├── deployment.yaml
+    │       └── service.yaml
+    │
+    └── database/                                    ← Chart Database MySQL standalone
         ├── Chart.yaml
-        ├── values.yaml                              ← Valeurs dev
-        ├── values-prod.yaml                         ← Surcharges production
+        ├── values.yaml
         └── templates/
             ├── _helpers.tpl
-            ├── configmap.yaml
-            ├── deployment.yaml
-            ├── externalsecret.yaml
-            ├── ingress.yaml
-            ├── namespace.yaml
-            ├── networkpolicy.yaml
-            ├── pdb.yaml
-            ├── rbac.yaml
+            ├── persistentvolumeclaim.yaml
             ├── service.yaml
-            └── serviceaccount.yaml
+            └── statefulset.yaml
 ```

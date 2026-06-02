@@ -8,6 +8,7 @@ hadolint = "2.12.0"
 java = "openjdk-17"
 maven = "3.9.6"
 node = "20"
+helm = "3.14.0"
 
 [tasks."compile:backend"]
 description = "Compile the backend Java application using Maven"
@@ -66,3 +67,31 @@ run = "dive miage-bank-frontend:latest --ci --lowestEfficiency 0.95 --highestWas
 [tasks.ci]
 description = "Run the full CI pipeline locally"
 depends = ["scan:backend", "scan:frontend", "audit:backend", "audit:frontend"]
+
+[tasks."helm:dep"]
+description = "Update Helm chart dependencies"
+run = "helm dependency update miage-bank"
+
+[tasks."helm:lint"]
+description = "Lint all Helm charts"
+depends = ["helm:dep"]
+run = [
+    "helm lint miage-bank",
+    "helm lint frontend",
+    "helm lint database"
+]
+
+[tasks."helm:template"]
+description = "Render Helm templates"
+depends = ["helm:dep"]
+run = "helm template miage-bank"
+
+[tasks."helm:deploy"]
+description = "Deploy Helm chart to development environment"
+depends = ["helm:dep"]
+run = "helm upgrade --install miage-bank ./miage-bank -n miage-bank --create-namespace"
+
+[tasks."helm:deploy:prod"]
+description = "Deploy Helm chart to production environment"
+depends = ["helm:dep"]
+run = "helm upgrade --install miage-bank ./miage-bank -f ./miage-bank/values.yaml -f ./miage-bank/values-prod.yaml -n miage-bank --create-namespace"

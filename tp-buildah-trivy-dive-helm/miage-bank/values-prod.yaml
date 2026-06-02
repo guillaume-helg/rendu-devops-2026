@@ -1,28 +1,43 @@
-replicaCount: 3
-
 ingress:
   enabled: true
   className: "traefik"
   hosts:
     - host: miage-bank.production.local
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
 
-resources:
-  limits:
-    cpu: 1000m
-    memory: 1024Mi
-  requests:
-    cpu: 250m
-    memory: 512Mi
+backend:
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  config:
+    springProfile: "prod"
+  vault:
+    secretPath: "secret/data/miage-bank-prod"
 
-autoscaling:
+frontend:
   enabled: true
-  minReplicas: 3
-  maxReplicas: 10
-config:
-  springProfile: "prod"
+  replicaCount: 3
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
 
-vault:
-  secretPath: "secret/data/miage-bank-prod"
+mysql:
+  enabled: true
+  persistence:
+    size: 5Gi
