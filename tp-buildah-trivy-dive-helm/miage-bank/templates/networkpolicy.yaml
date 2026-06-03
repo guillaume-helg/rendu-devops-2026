@@ -9,73 +9,6 @@ spec:
   policyTypes:
   - Ingress
 ---
-# Ingress: Allow Traefik Ingress Controller to reach frontend and backend
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-traefik-ingress
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: traefik
-    ports:
-    - protocol: TCP
-      port: 8080
-    - protocol: TCP
-      port: 3000
----
-# Ingress: Allow frontend pods to contact backend pods on port 8080
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-frontend-to-backend
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
-      component: backend
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
-          component: frontend
-    ports:
-    - protocol: TCP
-      port: 8080
----
-# Ingress: Allow backend pods to reach MySQL database on port 3306
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-mysql-ingress
-  namespace: {{ .Release.Namespace }}
-spec:
-  podSelector:
-    matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
-      component: mysql
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
-          component: backend
-    ports:
-    - protocol: TCP
-      port: 3306
----
 # Egress: Default deny all outbound traffic
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -106,38 +39,161 @@ spec:
     - port: 53
       protocol: TCP
 ---
-# Egress: Allow backend pods to reach Vault for secret injection
+# Ingress: Allow Traefik/Nginx Ingress Controller to reach frontend and gateway
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-vault-egress
+  name: allow-ingress-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 3000
+---
+# NetworkPolicy: Allow all services to reach discovery-service (Eureka)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-discovery-traffic
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
-      component: backend
+      app.kubernetes.io/name: miage-bank
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: miage-bank
+    ports:
+    - protocol: TCP
+      port: 8761
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          component: discovery
+    ports:
+    - protocol: TCP
+      port: 8761
+---
+# NetworkPolicy: Allow all services to reach config-service (Config Server)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-config-traffic
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: miage-bank
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: miage-bank
+    ports:
+    - protocol: TCP
+      port: 8888
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          component: config
+    ports:
+    - protocol: TCP
+      port: 8888
+---
+# NetworkPolicy: Allow gateway to talk to business services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-egress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: gateway
   policyTypes:
   - Egress
   egress:
   - to:
-    - namespaceSelector:
+    - podSelector:
         matchLabels:
-          kubernetes.io/metadata.name: default
+          component: customer
     ports:
-    - port: 8200
-      protocol: TCP
+    - protocol: TCP
+      port: 8081
+  - to:
+    - podSelector:
+        matchLabels:
+          component: account
+    ports:
+    - protocol: TCP
+      port: 8082
+  - to:
+    - podSelector:
+        matchLabels:
+          component: composite
+    ports:
+    - protocol: TCP
+      port: 8083
 ---
-# Egress: Allow frontend pods to reach backend pods
+# NetworkPolicy: Allow gateway ingress on port 8080 from Ingress or Frontend
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-frontend-egress-to-backend
+  name: allow-gateway-ingress
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: gateway
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: traefik
+    - podSelector:
+        matchLabels:
+          component: frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# NetworkPolicy: Allow frontend egress to gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-egress-to-gateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
       component: frontend
   policyTypes:
   - Egress
@@ -145,31 +201,166 @@ spec:
   - to:
     - podSelector:
         matchLabels:
-          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
-          component: backend
+          component: gateway
     ports:
-    - port: 8080
-      protocol: TCP
+    - protocol: TCP
+      port: 8080
 ---
-# Egress: Allow backend pods to reach MySQL database
+# NetworkPolicy: Allow composite to talk to customer and account
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-backend-egress-to-mysql
+  name: allow-composite-egress
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
-      component: backend
+      component: composite
   policyTypes:
   - Egress
   egress:
   - to:
     - podSelector:
         matchLabels:
-          {{- include "miage-bank.selectorLabels" . | nindent 10 }}
+          component: customer
+    ports:
+    - protocol: TCP
+      port: 8081
+  - to:
+    - podSelector:
+        matchLabels:
+          component: account
+    ports:
+    - protocol: TCP
+      port: 8082
+---
+# NetworkPolicy: Allow composite ingress on port 8083 from gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-composite-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: composite
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          component: gateway
+    ports:
+    - protocol: TCP
+      port: 8083
+---
+# NetworkPolicy: Allow business services to receive traffic from gateway or composite
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-business-ingress
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: miage-bank
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          component: gateway
+    - podSelector:
+        matchLabels:
+          component: composite
+    ports:
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 8082
+---
+# NetworkPolicy: Allow customer-service to call MySQL database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-customer-to-mysql
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: customer
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
           component: mysql
     ports:
-    - port: 3306
-      protocol: TCP
+    - protocol: TCP
+      port: 3306
+---
+# NetworkPolicy: Allow MySQL to receive ingress from customer-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mysql-ingress-from-customer
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: mysql
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          component: customer
+    ports:
+    - protocol: TCP
+      port: 3306
+---
+# NetworkPolicy: Allow account-service to call MongoDB database
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-account-to-mongodb
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: account
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          component: mongodb
+    ports:
+    - protocol: TCP
+      port: 27017
+---
+# NetworkPolicy: Allow MongoDB to receive ingress from account-service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mongodb-ingress-from-account
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      component: mongodb
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          component: account
+    ports:
+    - protocol: TCP
+      port: 27017

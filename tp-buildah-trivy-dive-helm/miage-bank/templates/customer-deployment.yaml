@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-customer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.selectorLabels" . | nindent 4 }}
+    component: customer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: customer
+  template:
+    metadata:
+      labels:
+        {{- include "miage-bank.selectorLabels" . | nindent 8 }}
+        component: customer
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: customer
+          image: "{{ .Values.customer.image.repository }}:{{ .Values.customer.image.tag }}"
+          imagePullPolicy: {{ .Values.customer.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://{{ include "miage-bank.fullname" . }}-config:8888/"
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://{{ include "miage-bank.fullname" . }}-mysql:3306/{{ .Values.mysql.database | default "customer_db" }}?serverTimezone=UTC&createDatabaseIfNotExist=true"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.mysql.rootPassword | quote }}
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.customer.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

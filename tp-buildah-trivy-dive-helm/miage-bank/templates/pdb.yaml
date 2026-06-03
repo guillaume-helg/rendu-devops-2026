@@ -1,14 +1,16 @@
-{{- if gt (int .Values.backend.replicaCount) 1 }}
+{{- if gt (int .Values.frontend.replicaCount) 1 }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ include "miage-bank.fullname" . }}
+  name: {{ include "miage-bank.fullname" . }}-frontend
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "miage-bank.selectorLabels" . | nindent 4 }}
+    component: frontend
 spec:
   minAvailable: 1
   selector:
     matchLabels:
       {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: frontend
 {{- end }}

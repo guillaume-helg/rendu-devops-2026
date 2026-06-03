@@ -6,7 +6,7 @@ minikube = "1.38.1"
 [tasks."deploy:infra"]
 description = "Start Minikube and install third-party operators (ESO + Vault)"
 run = [
-    "minikube start --memory=4096 --cpus=2",
+    "minikube start --memory=5120 --cpus=3 --driver=docker",
     "helm repo add external-secrets https://charts.external-secrets.io",
     "helm repo add hashicorp https://helm.releases.hashicorp.com",
     "helm repo update",
@@ -31,6 +31,8 @@ run = [
 description = "Deploy the MIAGE-Bank Helm Chart"
 depends = ["deploy:secrets"]
 run = [
+    "rm -f ./tp-buildah-trivy-dive-helm/miage-bank/charts/*.tgz",
+    "helm dependency update ./tp-buildah-trivy-dive-helm/miage-bank",
     "helm lint ./tp-buildah-trivy-dive-helm/miage-bank",
     "helm upgrade --install miage-bank ./tp-buildah-trivy-dive-helm/miage-bank -n miage-bank"
 ]

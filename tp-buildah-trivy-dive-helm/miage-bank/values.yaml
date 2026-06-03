@@ -4,31 +4,83 @@ ingress:
   hosts:
     - host: miage-bank.local
 
-backend:
-  replicaCount: 1
+discovery:
   image:
-    repository: ghcr.io/guillaume-helg/miage-bank-backend
+    repository: ghcr.io/guillaume-helg/miage-bank-discovery
     pullPolicy: IfNotPresent
     tag: "latest"
-  service:
-    port: 8080
   resources:
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 384Mi
     requests:
-      cpu: 100m
-      memory: 256Mi
-  autoscaling:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 3
-    targetCPUUtilizationPercentage: 80
-  config:
-    springProfile: "default"
-    extra: {}
-  vault:
-    secretPath: "secret/data/miage-bank"
+      cpu: 50m
+      memory: 192Mi
+
+config:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-config
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
+
+gateway:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-gateway
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
+
+customer:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-customer
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
+
+account:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-account
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
+
+composite:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-composite
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 192Mi
 
 frontend:
   enabled: true
@@ -60,8 +112,8 @@ mysql:
     pullPolicy: IfNotPresent
   service:
     port: 3306
-  rootPassword: "root"
-  database: "test"
+  rootPassword: "password"
+  database: "customer_db"
   persistence:
     enabled: true
     storageClass: "standard"
@@ -70,3 +122,6 @@ mysql:
 serviceAccount:
   create: true
   name: "miage-bank-sa"
+
+vault:
+  secretPath: "secret/data/miage-bank"

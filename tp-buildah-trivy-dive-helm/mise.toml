@@ -11,9 +11,9 @@ node = "20"
 helm = "3.14.0"
 
 [tasks."compile:backend"]
-description = "Compile the backend Java application using Maven"
+description = "Compile all microservices using Maven parent POM"
 dir = "banque-micro-service"
-run = "mvn clean package -DskipTests"
+run = "mvn -f pom-parent.xml clean package -DskipTests"
 
 [tasks."compile:frontend"]
 description = "Build the Next.js frontend application"
@@ -21,11 +21,21 @@ dir = "banque-front"
 run = "npm install && npm run build"
 
 [tasks."build:backend"]
-description = "Build the backend image using Containerfile"
+description = "Build the 6 backend microservices using Buildah"
 depends = ["compile:backend"]
 run = [
-    "buildah bud -t miage-bank-backend:latest -f Containerfile.backend .",
-    "buildah push miage-bank-backend:latest docker-daemon:miage-bank-backend:latest"
+    "buildah bud -t miage-bank-discovery:latest -f banque-micro-service/discovery-service/Dockerfile banque-micro-service/discovery-service",
+    "buildah push miage-bank-discovery:latest docker-daemon:miage-bank-discovery:latest",
+    "buildah bud -t miage-bank-config:latest -f banque-micro-service/config-service/Dockerfile banque-micro-service/config-service",
+    "buildah push miage-bank-config:latest docker-daemon:miage-bank-config:latest",
+    "buildah bud -t miage-bank-gateway:latest -f banque-micro-service/gateway-service/Dockerfile banque-micro-service/gateway-service",
+    "buildah push miage-bank-gateway:latest docker-daemon:miage-bank-gateway:latest",
+    "buildah bud -t miage-bank-customer:latest -f banque-micro-service/customer-service/Dockerfile banque-micro-service/customer-service",
+    "buildah push miage-bank-customer:latest docker-daemon:miage-bank-customer:latest",
+    "buildah bud -t miage-bank-account:latest -f banque-micro-service/account-service/Dockerfile banque-micro-service/account-service",
+    "buildah push miage-bank-account:latest docker-daemon:miage-bank-account:latest",
+    "buildah bud -t miage-bank-composite:latest -f banque-micro-service/composite-service/Dockerfile banque-micro-service/composite-service",
+    "buildah push miage-bank-composite:latest docker-daemon:miage-bank-composite:latest"
 ]
 
 [tasks."build:frontend"]
@@ -37,12 +47,12 @@ run = [
 ]
 
 [tasks."scan:backend"]
-description = "Scan backend image with Trivy — fails on CRITICAL"
+description = "Scan gateway image with Trivy — fails on CRITICAL"
 depends = ["build:backend"]
 run = [
     "mkdir -p build-reports",
-    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-backend:latest",
-    "trivy image --severity CRITICAL --exit-code 0 -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-backend:latest"
+    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-gateway:latest",
+    "trivy image --severity CRITICAL --exit-code 0 -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-gateway:latest"
 ]
 
 [tasks."scan:frontend"]
@@ -55,9 +65,9 @@ run = [
 ]
 
 [tasks."audit:backend"]
-description = "Audit backend image with Dive in CI mode"
+description = "Audit API gateway image with Dive in CI mode"
 depends = ["build:backend"]
-run = "dive miage-bank-backend:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
+run = "dive miage-bank-gateway:latest --ci --lowestEfficiency 0.95 --highestWastedBytes 20971520 --highestUserWastedPercent 0.1"
 
 [tasks."audit:frontend"]
 description = "Audit frontend image with Dive in CI mode"

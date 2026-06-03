@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-account
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.selectorLabels" . | nindent 4 }}
+    component: account
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: account
+  template:
+    metadata:
+      labels:
+        {{- include "miage-bank.selectorLabels" . | nindent 8 }}
+        component: account
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: account
+          image: "{{ .Values.account.image.repository }}:{{ .Values.account.image.tag }}"
+          imagePullPolicy: {{ .Values.account.image.pullPolicy }}
+          command: ["java", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/sun.util.calendar=ALL-UNNAMED", "-jar", "/app.jar"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8082
+              protocol: TCP
+          env:
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://{{ include "miage-bank.fullname" . }}-config:8888/"
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
+            - name: SPRING_DATA_MONGODB_URI
+              value: "mongodb://{{ .Release.Name }}-mongodb:27017/account_db"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.account.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

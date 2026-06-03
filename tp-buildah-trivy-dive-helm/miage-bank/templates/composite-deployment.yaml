@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-composite
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.selectorLabels" . | nindent 4 }}
+    component: composite
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: composite
+  template:
+    metadata:
+      labels:
+        {{- include "miage-bank.selectorLabels" . | nindent 8 }}
+        component: composite
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: composite
+          image: "{{ .Values.composite.image.repository }}:{{ .Values.composite.image.tag }}"
+          imagePullPolicy: {{ .Values.composite.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8083
+              protocol: TCP
+          env:
+            - name: SPRING_CONFIG_IMPORT
+              value: "optional:configserver:http://{{ include "miage-bank.fullname" . }}-config:8888/"
+            - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+              value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.composite.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}

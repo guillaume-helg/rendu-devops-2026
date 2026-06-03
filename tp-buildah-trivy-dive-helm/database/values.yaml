@@ -1,15 +1,25 @@
-image:
-  repository: mysql
-  tag: "8.0"
-  pullPolicy: IfNotPresent
+mysql:
+  image:
+    repository: mysql
+    tag: "8.0"
+    pullPolicy: IfNotPresent
+  service:
+    port: 3306
+  rootPassword: "password"
+  database: "customer_db"
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: 1Gi
 
-service:
-  port: 3306
-
-rootPassword: "root"
-database: "test"
-
-persistence:
-  enabled: true
-  storageClass: "standard"
-  size: 1Gi
+mongodb:
+  image:
+    repository: mongo
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    port: 27017
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: 1Gi

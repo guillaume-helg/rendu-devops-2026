@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "database.fullname" . }}
+  name: {{ .Release.Name }}-mongodb
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "database.labels" . | nindent 4 }}
-    component: mysql
+    component: mongodb
 spec:
-  serviceName: {{ include "database.fullname" . }}
+  serviceName: {{ .Release.Name }}-mongodb
   replicas: 1
   selector:
     matchLabels:
       {{- include "database.selectorLabels" . | nindent 6 }}
-      component: mysql
+      component: mongodb
   template:
     metadata:
       labels:
         {{- include "database.selectorLabels" . | nindent 8 }}
-        component: mysql
+        component: mongodb
     spec:
       securityContext:
         runAsNonRoot: true
@@ -26,35 +26,30 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: mysql
-          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+        - name: mongodb
+          image: "{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              value: {{ .Values.mysql.rootPassword | quote }}
-            - name: MYSQL_DATABASE
-              value: {{ .Values.mysql.database | quote }}
           ports:
-            - name: mysql
-              containerPort: 3306
+            - name: mongodb
+              containerPort: 27017
               protocol: TCP
           livenessProbe:
             tcpSocket:
-              port: mysql
+              port: mongodb
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
-              port: mysql
+              port: mongodb
             initialDelaySeconds: 10
             periodSeconds: 5
           volumeMounts:
-            - name: mysql-persistent-storage
-              mountPath: /var/lib/mysql
+            - name: mongodb-persistent-storage
+              mountPath: /data/db
           resources:
             limits:
               cpu: "500m"
@@ -63,10 +58,10 @@ spec:
               cpu: "100m"
               memory: "256Mi"
       volumes:
-        - name: mysql-persistent-storage
-          {{- if .Values.mysql.persistence.enabled }}
+        - name: mongodb-persistent-storage
+          {{- if .Values.mongodb.persistence.enabled }}
           persistentVolumeClaim:
-            claimName: {{ include "database.fullname" . }}-pvc
+            claimName: {{ .Release.Name }}-mongodb-pvc
           {{- else }}
           emptyDir: {}
           {{- end }}
