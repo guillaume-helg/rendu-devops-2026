@@ -12,10 +12,10 @@ discovery:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 config:
   image:
@@ -25,10 +25,10 @@ config:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 gateway:
   image:
@@ -38,10 +38,10 @@ gateway:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 customer:
   image:
@@ -51,10 +51,10 @@ customer:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 account:
   image:
@@ -64,10 +64,10 @@ account:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 composite:
   image:
@@ -77,10 +77,10 @@ composite:
   resources:
     limits:
       cpu: 500m
-      memory: 384Mi
+      memory: 512Mi
     requests:
       cpu: 50m
-      memory: 192Mi
+      memory: 256Mi
 
 frontend:
   enabled: true

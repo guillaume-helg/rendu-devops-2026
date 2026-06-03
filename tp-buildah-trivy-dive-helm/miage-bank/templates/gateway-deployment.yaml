@@ -43,15 +43,19 @@ spec:
               value: "optional:configserver:http://{{ include "miage-bank.fullname" . }}-config:8888/"
             - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
               value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
           livenessProbe:
             tcpSocket:
               port: http
-            initialDelaySeconds: 40
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
               port: http
-            initialDelaySeconds: 20
             periodSeconds: 5
           volumeMounts:
             - name: tmp

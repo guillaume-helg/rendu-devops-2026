@@ -46,15 +46,19 @@ spec:
               value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
             - name: SPRING_DATA_MONGODB_URI
               value: "mongodb://{{ .Release.Name }}-mongodb:27017/account_db"
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 40
           livenessProbe:
             tcpSocket:
               port: http
-            initialDelaySeconds: 40
             periodSeconds: 10
           readinessProbe:
             tcpSocket:
               port: http
-            initialDelaySeconds: 20
             periodSeconds: 5
           volumeMounts:
             - name: tmp
