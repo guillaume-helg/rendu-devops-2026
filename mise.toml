@@ -7,11 +7,13 @@ minikube = "1.38.1"
 description = "Start Minikube and install third-party operators (ESO + Vault)"
 run = [
     "minikube start --memory=5120 --cpus=3 --driver=docker",
+    "minikube image load hashicorp/vault:1.21.2",
     "helm repo add external-secrets https://charts.external-secrets.io",
     "helm repo add hashicorp https://helm.releases.hashicorp.com",
     "helm repo update",
     "helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace --set installCRDs=true",
-    "helm upgrade --install vault hashicorp/vault -n default --set 'server.dev.enabled=true'",
+    "kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=external-secrets-webhook -n external-secrets --timeout=300s",
+    "helm upgrade --install vault hashicorp/vault -n default --set 'server.dev.enabled=true' --set 'injector.enabled=false' --set 'server.resources.requests.memory=128Mi' --set 'server.resources.requests.cpu=50m' --set 'server.readinessProbe.initialDelaySeconds=2' --set 'server.readinessProbe.periodSeconds=2'",
     "kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=vault -n default --timeout=120s"
 ]
 
