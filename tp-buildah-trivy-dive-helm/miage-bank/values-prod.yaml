@@ -93,3 +93,7 @@ mysql:
 
 vault:
   secretPath: "secret/data/miage-bank-prod"
+
+monitoring:
+  enabled: true
+  namespace: monitoring

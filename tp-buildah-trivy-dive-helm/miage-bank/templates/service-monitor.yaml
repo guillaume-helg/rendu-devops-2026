@@ -1,0 +1,39 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.labels" . | nindent 4 }}
+    component: gateway
+spec:
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: gateway
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.labels" . | nindent 4 }}
+    component: config
+spec:
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: config
+  endpoints:
+  - port: http
+    path: /actuator/prometheus
+    interval: 30s
+    scrapeTimeout: 10s
+{{- end }}
