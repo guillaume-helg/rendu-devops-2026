@@ -1,0 +1,72 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-mysql-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mysql.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: mysql-dump
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+              capabilities:
+                drop: ["ALL"]
+            env:
+            - name: MYSQL_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-mysql-root
+                  key: password
+            command:
+            - /bin/sh
+            - -c
+            - |
+              mkdir -p /backup
+              FILENAME="mysql-backup-$(date +\%Y\%m\%d_\%H\%M\%S).sql.gz"
+              echo "Starting backup: $FILENAME"
+              mysqldump -h {{ .Release.Name }}-mysql -u root --all-databases --single-transaction --quick | gzip > /backup/$FILENAME
+              if [ $? -eq 0 ]; then
+                echo "Backup successful: $FILENAME"
+                # Keep only last 7 days
+                find /backup -name "mysql-backup-*.sql.gz" -mtime +7 -delete
+              else
+                echo "Backup failed!"
+                exit 1
+              fi
+            volumeMounts:
+            - name: backup
+              mountPath: /backup
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          volumes:
+          - name: backup
+            persistentVolumeClaim:
+              claimName: {{ .Release.Name }}-mysql-backup-pvc
+          restartPolicy: OnFailure
+          backoffLimit: 3
+{{- end }}

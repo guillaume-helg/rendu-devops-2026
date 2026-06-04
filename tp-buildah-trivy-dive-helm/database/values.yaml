@@ -23,3 +23,13 @@ mongodb:
     enabled: true
     storageClass: "standard"
     size: 1Gi
+
+serviceAccount:
+  create: true
+  name: "database-sa"
+
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  storageClass: "standard"
+  size: 10Gi

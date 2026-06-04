@@ -138,3 +138,7 @@ serviceAccount:
 
 vault:
   secretPath: "secret/data/miage-bank"
+
+monitoring:
+  enabled: false
+  namespace: monitoring
