@@ -29,3 +29,16 @@ mise.toml
 
 # Native build scripts (not needed in Containerfile builds)
 buildah-native-*.sh
+
+# Secrets and credentials (CRITICAL - never include in images)
+.env
+.env.*
+secrets/
+credentials/
+*.key
+*.pem
+*.p12
+vault-config.yaml
+kubeconfig*
+.docker/config.json
+buildah-auth.json
