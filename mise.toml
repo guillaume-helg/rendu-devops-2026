@@ -7,6 +7,7 @@ minikube = "1.38.1"
 description = "Start Minikube and install third-party operators (ESO + Vault)"
 run = [
     "minikube start --memory=5120 --cpus=3 --driver=docker",
+    "minikube addons enable ingress",
     "minikube image load hashicorp/vault:1.21.2",
     "helm repo add external-secrets https://charts.external-secrets.io",
     "helm repo add hashicorp https://helm.releases.hashicorp.com",
