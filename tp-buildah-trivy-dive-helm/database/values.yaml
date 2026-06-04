@@ -5,8 +5,8 @@ mysql:
     pullPolicy: IfNotPresent
   service:
     port: 3306
-  rootPassword: "password"
-  database: "customer_db"
+  rootPassword: ${MYSQL_ROOT_PASSWORD}
+  database: ${MYSQL_DATABASE}
   persistence:
     enabled: true
     storageClass: "standard"

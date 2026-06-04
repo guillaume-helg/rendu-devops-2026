@@ -19,3 +19,21 @@ trivy-*.sarif
 # OS
 .DS_Store
 Thumbs.db
+
+# Secrets and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+secrets/
+credentials/
+
+# Vault and Kubernetes
+vault-config.yaml
+kubeconfig*
+
+# Sensitive build artifacts
+.docker/config.json
+buildah-auth.json

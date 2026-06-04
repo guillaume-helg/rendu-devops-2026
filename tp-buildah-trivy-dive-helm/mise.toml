@@ -47,21 +47,21 @@ run = [
 ]
 
 [tasks."scan:backend"]
-description = "Scan gateway image with Trivy — fails on CRITICAL"
+description = "Scan gateway image with Trivy — vulnerabilities and secrets"
 depends = ["build:backend"]
 run = [
     "mkdir -p build-reports",
-    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-gateway:latest",
-    "trivy image --severity CRITICAL --exit-code 0 -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-gateway:latest"
+    "trivy image --severity HIGH,CRITICAL --scanners vuln,secret --exit-code 0 -f json -o build-reports/trivy-backend-report.json miage-bank-gateway:latest",
+    "trivy image --severity CRITICAL --scanners vuln,secret --exit-code 0 -f sarif -o build-reports/trivy-backend-report.sarif miage-bank-gateway:latest"
 ]
 
 [tasks."scan:frontend"]
-description = "Scan frontend image with Trivy — fails on CRITICAL"
+description = "Scan frontend image with Trivy — vulnerabilities and secrets"
 depends = ["build:frontend", "scan:backend"]
 run = [
     "mkdir -p build-reports",
-    "trivy image --severity HIGH,CRITICAL --exit-code 0 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
-    "trivy image --severity CRITICAL --exit-code 0 -f sarif -o build-reports/trivy-frontend-report.sarif miage-bank-frontend:latest"
+    "trivy image --severity HIGH,CRITICAL --scanners vuln,secret --exit-code 0 -f json -o build-reports/trivy-frontend-report.json miage-bank-frontend:latest",
+    "trivy image --severity CRITICAL --scanners vuln,secret --exit-code 0 -f sarif -o build-reports/trivy-frontend-report.sarif miage-bank-frontend:latest"
 ]
 
 [tasks."audit:backend"]
