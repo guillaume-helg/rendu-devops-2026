@@ -21,9 +21,9 @@ run = [
 description = "Provision Vault secrets and namespace"
 depends = ["deploy:infra"]
 run = [
-    "kubectl exec vault-0 -n default -- vault kv put secret/miage-bank spring.datasource.password='db-ultra-secure-pass'",
+    "kubectl exec vault-0 -n default -- vault kv put secret/miage-bank spring.datasource.password='${DB_PASSWORD}'",
     "kubectl create namespace miage-bank --dry-run=client -o yaml | kubectl apply -f -",
-    "kubectl create secret generic vault-token --from-literal=token='root' -n miage-bank --dry-run=client -o yaml | kubectl apply -f -",
+    "kubectl create secret generic vault-token --from-literal=token='${VAULT_TOKEN}' -n miage-bank --dry-run=client -o yaml | kubectl apply -f -",
     "kubectl label namespace miage-bank app.kubernetes.io/managed-by=Helm --overwrite",
     "kubectl annotate namespace miage-bank meta.helm.sh/release-name=miage-bank --overwrite",
     "kubectl annotate namespace miage-bank meta.helm.sh/release-namespace=miage-bank --overwrite"
