@@ -1,8 +1,15 @@
 ingress:
   enabled: true
   className: "traefik"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/ratelimit.burst: "20"
+    traefik.ingress.kubernetes.io/ratelimit.rps: "10"
   hosts:
     - host: miage-bank.production.local
+  tls:
+    enabled: true
+    certIssuer: "letsencrypt-prod"
 
 discovery:
   resources:
@@ -30,6 +37,12 @@ gateway:
     requests:
       cpu: 100m
       memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
 
 customer:
   resources:
