@@ -4,9 +4,6 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "miage-bank.fullname" . }}-gateway-hpa
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "miage-bank.labels" . | nindent 4 }}
-    component: gateway
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

@@ -4,8 +4,6 @@ kind: CronJob
 metadata:
   name: {{ .Release.Name }}-mysql-backup
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "mysql.labels" . | nindent 4 }}
 spec:
   schedule: {{ .Values.backup.schedule | quote }}
   concurrencyPolicy: Forbid

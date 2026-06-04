@@ -4,8 +4,6 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Release.Name }}-mysql-backup-pvc
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "mysql.labels" . | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteOnce

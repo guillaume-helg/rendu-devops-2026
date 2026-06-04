@@ -3,9 +3,6 @@ kind: PodDisruptionBudget
 metadata:
   name: {{ include "miage-bank.fullname" . }}-gateway-pdb
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "miage-bank.labels" . | nindent 4 }}
-    component: gateway
 spec:
   minAvailable: 1
   selector:
