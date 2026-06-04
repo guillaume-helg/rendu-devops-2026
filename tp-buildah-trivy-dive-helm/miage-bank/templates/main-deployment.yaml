@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "miage-bank.fullname" . }}-main
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "miage-bank.selectorLabels" . | nindent 4 }}
+    component: main
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "miage-bank.selectorLabels" . | nindent 6 }}
+      component: main
+  template:
+    metadata:
+      labels:
+        {{- include "miage-bank.selectorLabels" . | nindent 8 }}
+        component: main
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command: 
+            - 'sh'
+            - '-c'
+            - 'until nc -z {{ .Release.Name }}-mysql 3306; do echo waiting for dependencies; sleep 2; done;'
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: main
+          image: "main-service:latest" # Note: Update with actual registry if needed in values
+          imagePullPolicy: IfNotPresent
+          command: ["java", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/sun.util.calendar=ALL-UNNAMED", "-jar", "/app.jar"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/test?serverTimezone=UTC"
+            # Ensure other specific environment configurations are handled if any
+          startupProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 40
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
