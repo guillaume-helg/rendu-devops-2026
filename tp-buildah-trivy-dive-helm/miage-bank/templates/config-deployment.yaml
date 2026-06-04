@@ -25,6 +25,8 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        {{- include "miage-bank.waitForDiscovery" . | nindent 8 }}
       containers:
         - name: config
           image: "{{ .Values.config.image.repository }}:{{ .Values.config.image.tag }}"
@@ -46,19 +48,31 @@ spec:
             - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
               value: "http://{{ include "miage-bank.fullname" . }}-discovery:8761/eureka/"
           startupProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/startup
               port: http
+              scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 5
-            failureThreshold: 40
+            failureThreshold: 30
+            timeoutSeconds: 2
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/liveness
               port: http
+              scheme: HTTP
             periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 2
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /actuator/health/readiness
               port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
             periodSeconds: 5
+            failureThreshold: 2
+            timeoutSeconds: 2
           volumeMounts:
             - name: tmp
               mountPath: /tmp

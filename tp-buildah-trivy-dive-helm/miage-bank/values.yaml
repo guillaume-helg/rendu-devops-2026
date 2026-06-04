@@ -1,8 +1,15 @@
 ingress:
   enabled: true
   className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "60m"
   hosts:
     - host: miage-bank.local
+  tls:
+    enabled: false
+    certIssuer: "letsencrypt-staging"
 
 discovery:
   image:
@@ -42,6 +49,12 @@ gateway:
     requests:
       cpu: 50m
       memory: 256Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
 
 customer:
   image:
