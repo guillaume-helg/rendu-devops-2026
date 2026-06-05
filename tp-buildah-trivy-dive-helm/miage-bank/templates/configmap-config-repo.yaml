@@ -10,11 +10,12 @@ data:
     spring:
       data:
         mongodb:
-          uri: mongodb://localhost:27017/account_db
+          # Utilisation du service MongoDB de Kubernetes
+          uri: mongodb://miage-bank-mongodb:27017/account_db
     eureka:
       client:
         service-url:
-          defaultZone: http://localhost:8761/eureka/
+          defaultZone: http://miage-bank-discovery:8761/eureka/
       instance:
         prefer-ip-address: true
 
@@ -22,14 +23,15 @@ data:
     eureka:
       client:
         service-url:
-          defaultZone: http://localhost:8761/eureka/
+          defaultZone: http://miage-bank-discovery:8761/eureka/
       instance:
         prefer-ip-address: true
 
   customer-service.yml: |
     spring:
       datasource:
-        url: jdbc:mysql://localhost:3306/customer_db?createDatabaseIfNotExist=true
+        # Utilisation du service MySQL de Kubernetes
+        url: jdbc:mysql://miage-bank-mysql:3306/customer_db?createDatabaseIfNotExist=true
         username: root
         password: password
       jpa:
@@ -39,7 +41,7 @@ data:
     eureka:
       client:
         service-url:
-          defaultZone: http://localhost:8761/eureka/
+          defaultZone: http://miage-bank-discovery:8761/eureka/
       instance:
         prefer-ip-address: true
 
@@ -67,6 +69,20 @@ data:
     eureka:
       client:
         service-url:
-          defaultZone: http://discovery-service:8761/eureka/
+          defaultZone: http://miage-bank-discovery:8761/eureka/
+      instance:
+        prefer-ip-address: true
+  main-service.yml: |
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://miage-bank-discovery:8761/eureka/
+      instance:
+        prefer-ip-address: true
+  monitoring-service.yml: |
+    eureka:
+      client:
+        service-url:
+          defaultZone: http://miage-bank-discovery:8761/eureka/
       instance:
         prefer-ip-address: true

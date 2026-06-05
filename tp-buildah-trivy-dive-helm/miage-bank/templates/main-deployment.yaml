@@ -53,7 +53,11 @@ spec:
               protocol: TCP
           env:
             - name: SPRING_DATASOURCE_URL
-              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/test?serverTimezone=UTC"
+              value: "jdbc:mysql://{{ .Release.Name }}-mysql:3306/{{ .Values.mysql.database | default "customer_db" }}?serverTimezone=UTC&createDatabaseIfNotExist=true"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.mysql.rootPassword | quote }}
             # Ensure other specific environment configurations are handled if any
           startupProbe:
             tcpSocket:
