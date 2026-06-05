@@ -13,7 +13,10 @@ helm = "3.14.0"
 [tasks."compile:backend"]
 description = "Compile all microservices using Maven parent POM"
 dir = "banque-micro-service"
-run = "mvn -f pom-parent.xml clean package -DskipTests"
+run = [
+    "mvn -f pom-parent.xml clean package -DskipTests",
+    "mvn clean package -DskipTests"
+]
 
 [tasks."compile:frontend"]
 description = "Build the Next.js frontend application"
