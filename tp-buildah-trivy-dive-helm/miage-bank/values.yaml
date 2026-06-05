@@ -82,6 +82,32 @@ composite:
       cpu: 50m
       memory: 256Mi
 
+main:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-main
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
+monitoring:
+  image:
+    repository: ghcr.io/guillaume-helg/miage-bank-monitoring
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
 frontend:
   enabled: true
   replicaCount: 1

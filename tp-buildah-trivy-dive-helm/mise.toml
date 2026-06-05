@@ -21,7 +21,7 @@ dir = "banque-front"
 run = "npm install && npm run build"
 
 [tasks."build:backend"]
-description = "Build the 6 backend microservices using Buildah"
+description = "Build the 8 backend microservices using Buildah"
 depends = ["compile:backend"]
 run = [
     "buildah bud -t miage-bank-discovery:latest -f banque-micro-service/discovery-service/Dockerfile banque-micro-service/discovery-service",
@@ -35,7 +35,11 @@ run = [
     "buildah bud -t miage-bank-account:latest -f banque-micro-service/account-service/Dockerfile banque-micro-service/account-service",
     "buildah push miage-bank-account:latest docker-daemon:miage-bank-account:latest",
     "buildah bud -t miage-bank-composite:latest -f banque-micro-service/composite-service/Dockerfile banque-micro-service/composite-service",
-    "buildah push miage-bank-composite:latest docker-daemon:miage-bank-composite:latest"
+    "buildah push miage-bank-composite:latest docker-daemon:miage-bank-composite:latest",
+    "buildah bud -t miage-bank-monitoring:latest -f banque-micro-service/monitoring-service/Dockerfile banque-micro-service/monitoring-service",
+    "buildah push miage-bank-monitoring:latest docker-daemon:miage-bank-monitoring:latest",
+    "buildah bud -t miage-bank-main:latest -f banque-micro-service/Dockerfile banque-micro-service",
+    "buildah push miage-bank-main:latest docker-daemon:miage-bank-main:latest"
 ]
 
 [tasks."build:frontend"]

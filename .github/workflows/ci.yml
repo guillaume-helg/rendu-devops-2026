@@ -57,7 +57,7 @@ jobs:
         REGISTRY: ghcr.io/${{ github.repository_owner }}
       run: |
         echo "${{ secrets.GITHUB_TOKEN }}" | buildah login -u "${{ github.actor }}" --password-stdin ghcr.io
-        for img in miage-bank-discovery miage-bank-config miage-bank-gateway miage-bank-customer miage-bank-account miage-bank-composite miage-bank-frontend; do
+        for img in miage-bank-discovery miage-bank-config miage-bank-gateway miage-bank-customer miage-bank-account miage-bank-composite miage-bank-monitoring miage-bank-main miage-bank-frontend; do
           buildah tag ${img}:latest $REGISTRY/${img}:${{ github.sha }}
           buildah tag ${img}:latest $REGISTRY/${img}:latest
           buildah push $REGISTRY/${img}:${{ github.sha }}

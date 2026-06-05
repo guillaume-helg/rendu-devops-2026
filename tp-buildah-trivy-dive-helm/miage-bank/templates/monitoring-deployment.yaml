@@ -39,8 +39,8 @@ spec:
               drop: ["ALL"]
       containers:
         - name: monitoring
-          image: "monitoring-service:latest" # Note: Update with actual registry if needed in values
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.monitoring.image.repository }}:{{ .Values.monitoring.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.monitoring.image.pullPolicy }}
           command: ["java", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "--add-opens", "java.base/sun.util.calendar=ALL-UNNAMED", "-jar", "/app.jar"]
           securityContext:
             allowPrivilegeEscalation: false

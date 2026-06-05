@@ -58,6 +58,24 @@ composite:
       cpu: 100m
       memory: 256Mi
 
+main:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+monitoring:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
 frontend:
   enabled: true
   replicaCount: 3
