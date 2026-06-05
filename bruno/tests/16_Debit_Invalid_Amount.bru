@@ -1,0 +1,31 @@
+meta {
+  name: Debit - Insufficient Funds (Error Case)
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{base_url}}/api/comptes/{{compte_id}}/operations
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "valeur": 999999,
+    "operationType": "DEBIT"
+  }
+}
+
+tests {
+  test("Status code is 400 or 422", function() {
+    expect([400, 422]).to.include(res.getStatus());
+  });
+
+  test("Error response present", function() {
+    expect(res.body).to.exist;
+  });
+}

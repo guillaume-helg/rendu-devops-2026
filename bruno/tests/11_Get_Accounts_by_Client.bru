@@ -1,0 +1,31 @@
+meta {
+  name: Get All Accounts for Client
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{base_url}}/api/clients/{{client_id}}/comptes
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response is an array", function() {
+    expect(res.body).to.be.an('array');
+  });
+
+  test("All accounts belong to the client", function() {
+    if (res.body.length > 0) {
+      res.body.forEach(function(compte) {
+        expect(compte.clientId || compte.client_id).to.equal(parseInt(bru.getEnvVar("client_id")));
+      });
+    }
+  });
+}

@@ -1,0 +1,51 @@
+meta {
+  name: Create Client
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/clients
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "nom": "Dupont",
+    "prenom": "Pierre"
+  }
+}
+
+vars:pre-request {
+  base_url: http://miage-bank.local
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setEnvVar("client_id", res.body.id);
+  }
+}
+
+tests {
+  test("Status code is 200 or 201", function() {
+    expect([200, 201]).to.include(res.getStatus());
+  });
+  
+  test("Response contains client ID", function() {
+    expect(res.body).to.have.property("id");
+  });
+  
+  test("Response contains name", function() {
+    expect(res.body.nom).to.equal("Dupont");
+  });
+  
+  test("Response contains firstname", function() {
+    expect(res.body.prenom).to.equal("Pierre");
+  });
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Close Account
+  type: http
+  seq: 19
+}
+
+delete {
+  url: {{base_url}}/api/comptes/{{compte_id}}
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+}
+
+tests {
+  test("Status code is 200 or 204", function() {
+    expect([200, 204]).to.include(res.getStatus());
+  });
+}

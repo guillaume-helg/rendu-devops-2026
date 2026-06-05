@@ -1,0 +1,26 @@
+meta {
+  name: Create Invalid Operation (Error Case)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/comptes/{{compte_id}}/operations
+}
+
+body:json {
+  {
+    "operationType": "INVALID",
+    "valeur": 50.00
+  }
+}
+
+tests {
+  test("Status code is 400 or 422", function() {
+    expect([400, 422]).to.include(res.getStatus());
+  });
+
+  test("Error message mentions non-conformité", function() {
+    expect(res.body).to.include.string("conforme");
+  });
+}

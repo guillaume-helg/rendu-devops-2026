@@ -1,0 +1,31 @@
+meta {
+  name: Refresh Authentication Token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/auth/refresh-token
+}
+
+headers {
+  Authorization: Bearer {{refresh_token}}
+  Content-Type: application/json
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response contains new access_token", function() {
+    expect(res.body).to.have.property("access_token");
+  });
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("auth_token", res.body.access_token);
+    bru.setEnvVar("refresh_token", res.body.refresh_token);
+  }
+}

@@ -1,0 +1,35 @@
+meta {
+  name: Debit Account Operation
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{base_url}}/api/comptes/{{compte_id}}/operations
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "valeur": 250,
+    "operationType": "DEBIT"
+  }
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response contains updated balance", function() {
+    expect(res.body).to.have.property("solde");
+  });
+
+  test("Balance decreased after debit", function() {
+    expect(res.body.solde).to.be.lessThan(5500);
+  });
+}

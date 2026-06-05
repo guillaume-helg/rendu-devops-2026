@@ -1,0 +1,15 @@
+vars {
+  # Gateway ROOT — les requêtes ajoutent elles-mêmes /api/v1/... etc.
+  base_url: http://miage-bank.local
+
+  # config-service : ClusterIP:8888, NON exposé par l'ingress.
+  # Lancer d'abord :
+  #   kubectl port-forward -n miage-bank svc/miage-bank-config 8888:8888
+  config_url: http://localhost:8888
+
+  # Remplies automatiquement par les scripts post-response pendant le run :
+  auth_token:
+  refresh_token:
+  client_id:
+  compte_id:
+}

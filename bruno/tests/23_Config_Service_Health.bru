@@ -1,0 +1,25 @@
+meta {
+  name: Check Config Service Health
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{config_url}}/actuator/health
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  config_url: http://miage-bank.local
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200));
+  });
+  
+  test("Status is UP", function() {
+    expect(res.body.status).to.equal("UP");
+  });
+}

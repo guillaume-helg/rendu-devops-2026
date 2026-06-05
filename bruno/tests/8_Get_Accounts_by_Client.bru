@@ -1,0 +1,25 @@
+meta {
+  name: Get Accounts by Client ID
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/api/comptes?clientId={{client_id}}
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response is an array", function() {
+    expect(res.body).to.be.an('array');
+  });
+
+  test("All accounts belong to client", function() {
+    res.body.forEach(function(compte) {
+      expect(compte.clientId).to.equal(parseInt({{client_id}}));
+    });
+  });
+}

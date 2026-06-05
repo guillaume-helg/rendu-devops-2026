@@ -1,0 +1,40 @@
+meta {
+  name: Create Account for Client
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{base_url}}/api/clients/{{client_id}}/comptes
+}
+
+headers {
+  Authorization: Bearer {{auth_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "solde": 5000
+  }
+}
+
+tests {
+  test("Status code is 200 or 201", function() {
+    expect([200, 201]).to.include(res.getStatus());
+  });
+
+  test("Response contains account ID", function() {
+    expect(res.body).to.have.property("id");
+  });
+
+  test("Account balance is correct", function() {
+    expect(res.body.solde).to.equal(5000);
+  });
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setEnvVar("compte_id", res.body.id);
+  }
+}

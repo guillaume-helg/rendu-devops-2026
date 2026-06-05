@@ -1,0 +1,7 @@
+{
+  "version": "1",
+  "name": "MIAGE Bank API",
+  "uid": "miage-bank-api",
+  "root": true,
+  "type": "collection"
+}

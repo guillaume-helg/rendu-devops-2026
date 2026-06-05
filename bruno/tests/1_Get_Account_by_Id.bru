@@ -1,0 +1,25 @@
+meta {
+  name: Get Account by ID
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/api/comptes/{{compte_id}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  base_url: http://miage-bank.local
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response contains position", function() {
+    expect(res.body).to.have.property("solde");
+  });
+}
